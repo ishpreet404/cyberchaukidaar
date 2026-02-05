@@ -1,12 +1,17 @@
 {
   "manifest_version": 3,
-  "name": "CyberGuard",
+  "name": "Cyber Chaukidaar",
   "version": "1.0.0",
-  "description": "Real-time protection against scams, phishing, and malicious websites",
+  "description": "Complete cybersecurity suite: site safety, ad/tracker blocking, password manager with USB Vault sync",
   "permissions": [
-    "activeTab",
     "storage",
-    "webNavigation"
+    "tabs",
+    "webRequest",
+    "webNavigation",
+    "activeTab",
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback",
+    "unlimitedStorage"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -18,20 +23,43 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"],
-      "css": ["content.css"]
+      "css": ["content.css"],
+      "run_at": "document_start"
     }
   ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
   },
   "icons": {
     "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ads_ruleset",
+        "enabled": true,
+        "path": "rules/ads.json"
+      },
+      {
+        "id": "trackers_ruleset",
+        "enabled": true,
+        "path": "rules/trackers.json"
+      }
+    ]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["overlay.html", "icons/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

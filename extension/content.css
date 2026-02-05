@@ -1,4 +1,33 @@
-/* Content script styles */
+/* Cyber Chaukidaar Content Script Styles */
+
+.cyber-password-strength {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+#cyber-chaukidaar-overlay * {
+  box-sizing: border-box;
+}
+
+#cyber-chaukidaar-overlay button:hover {
+  opacity: 0.8;
+  transform: scale(1.05);
+  transition: all 0.2s;
+}
+
+/* Auto-fill button hover effect */
+button[style*="Auto-fill"]:hover {
+  transform: translateY(-50%) scale(1.05) !important;
+}
+
 
 .cyberguard-warning {
   position: fixed;

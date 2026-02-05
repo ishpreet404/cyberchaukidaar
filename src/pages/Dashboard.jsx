@@ -1,17 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, AlertTriangle, TrendingUp, Activity, Zap } from 'lucide-react';
+import { Shield, AlertTriangle, TrendingUp, Activity, Zap, Blocks, Eye } from 'lucide-react';
 import { Card, ProgressBar, Button, Separator, TypingText, ASCIIArt, StatusBadge } from '../components';
 
 const Dashboard = () => {
   const [hygieneScore, setHygieneScore] = useState(0);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [extensionStats, setExtensionStats] = useState({
+    adsBlocked: 0,
+    trackersBlocked: 0,
+    sitesScanned: 0,
+    passwordsSaved: 0,
+    lastSync: null
+  });
+  const [extensionConnected, setExtensionConnected] = useState(false);
 
   useEffect(() => {
     // Animate score on load
     const timer = setTimeout(() => {
       setHygieneScore(87);
     }, 1000);
-    return () => clearTimeout(timer);
+    
+    // Listen for extension stats updates
+    const handleExtensionStats = (event) => {
+      console.log('Extension stats received:', event.detail);
+      setExtensionStats(event.detail);
+      setExtensionConnected(true);
+    };
+    
+    window.addEventListener('extensionStatsUpdate', handleExtensionStats);
+    
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('extensionStatsUpdate', handleExtensionStats);
+    };
   }, []);
 
   const recentThreats = [
@@ -52,6 +73,71 @@ const Dashboard = () => {
       )}
 
       <Separator variant="equals" />
+
+      {/* Extension Stats Card */}
+      {extensionConnected && (
+        <Card title="▸ BROWSER EXTENSION PROTECTION">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="border border-terminal-green p-4 text-center">
+              <Blocks className="w-6 h-6 mx-auto mb-2 text-terminal-green" />
+              <div className="text-2xl font-bold text-terminal-green text-shadow-terminal">
+                {extensionStats.adsBlocked.toLocaleString()}
+              </div>
+              <div className="text-xs text-terminal-muted mt-1">ADS BLOCKED</div>
+            </div>
+            
+            <div className="border border-terminal-green p-4 text-center">
+              <Eye className="w-6 h-6 mx-auto mb-2 text-terminal-green" />
+              <div className="text-2xl font-bold text-terminal-green text-shadow-terminal">
+                {extensionStats.trackersBlocked.toLocaleString()}
+              </div>
+              <div className="text-xs text-terminal-muted mt-1">TRACKERS BLOCKED</div>
+            </div>
+            
+            <div className="border border-terminal-green p-4 text-center">
+              <Shield className="w-6 h-6 mx-auto mb-2 text-terminal-green" />
+              <div className="text-2xl font-bold text-terminal-green text-shadow-terminal">
+                {extensionStats.sitesScanned.toLocaleString()}
+              </div>
+              <div className="text-xs text-terminal-muted mt-1">SITES SCANNED</div>
+            </div>
+            
+            <div className="border border-terminal-green p-4 text-center">
+              <Activity className="w-6 h-6 mx-auto mb-2 text-terminal-green" />
+              <div className="text-2xl font-bold text-terminal-green text-shadow-terminal">
+                {extensionStats.passwordsSaved.toLocaleString()}
+              </div>
+              <div className="text-xs text-terminal-muted mt-1">PASSWORDS SAVED</div>
+            </div>
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-terminal-green flex items-center justify-between">
+            <div className="text-xs text-terminal-muted">
+              Extension Status: <span className="text-terminal-green">● ACTIVE</span>
+            </div>
+            {extensionStats.lastSync && (
+              <div className="text-xs text-terminal-muted">
+                Last Sync: {new Date(extensionStats.lastSync).toLocaleString()}
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {!extensionConnected && (
+        <Card title="▸ BROWSER EXTENSION" className="border-terminal-amber">
+          <div className="flex items-center gap-3 text-terminal-amber">
+            <AlertTriangle className="w-6 h-6" />
+            <div>
+              <div className="font-bold mb-1">Extension Not Detected</div>
+              <div className="text-sm text-terminal-muted">
+                Install the Cyber Chaukidaar extension to enable real-time site protection, 
+                ad blocking, tracker blocking, and password management across all websites.
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Cyber Hygiene Score */}
       <Card title="▸ CYBER HYGIENE SCORE">

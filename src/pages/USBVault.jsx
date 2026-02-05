@@ -93,7 +93,47 @@ const USBVault = () => {
     checkBrowserSupport();
     checkDomainValidity();
     checkVaultStatus();
-  }, []);
+    
+    // Setup extension sync listeners
+    const handleExtensionSync = (event) => {
+      console.log('Extension sync request received:', event.detail);
+      
+      if (event.detail && event.detail.passwords) {
+        // Merge extension passwords with vault
+        if (!isLocked && vaultData) {
+          const updatedVault = {
+            ...vaultData,
+            extensionPasswords: event.detail.passwords
+          };
+          setVaultData(updatedVault);
+          setSuccess('✓ Synced with extension');
+          setTimeout(() => setSuccess(''), 3000);
+        }
+      }
+    };
+    
+    const handleSyncRequest = () => {
+      console.log('USB sync request from extension');
+      
+      // Send current vault passwords to extension
+      if (!isLocked && vaultData) {
+        window.dispatchEvent(new CustomEvent('usbSyncResponse', {
+          detail: {
+            passwords: vaultData.extensionPasswords || [],
+            timestamp: Date.now()
+          }
+        }));
+      }
+    };
+    
+    window.addEventListener('usbSyncFromExtension', handleExtensionSync);
+    window.addEventListener('usbSyncRequest', handleSyncRequest);
+    
+    return () => {
+      window.removeEventListener('usbSyncFromExtension', handleExtensionSync);
+      window.removeEventListener('usbSyncRequest', handleSyncRequest);
+    };
+  }, [isLocked, vaultData]);
 
   // Check if File System Access API is supported
   const checkBrowserSupport = () => {

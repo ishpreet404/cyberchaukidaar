@@ -1,52 +1,79 @@
-# 🛡️ CyberGuard
+# 🛡️ Cyber Chaukidaar
 
-**Personal Cyber Hygiene & Risk Prevention Platform**
+**Complete Cybersecurity Ecosystem - Powered by OrderOfPhoenix**
 
-CyberGuard is a pure-software cybersecurity ecosystem designed to protect individuals from scams, phishing, data breaches, and risky digital behavior. It focuses on prevention, behavior analysis, and recovery, not just detection.
+Cyber Chaukidaar (formerly CyberGuard) is a comprehensive cybersecurity platform with **website**, **USB Vault**, and **browser extension** - all working together to protect you from scams, breaches, phishing, and digital threats.
 
 > *Cyber attacks don't hack machines — they hack people.*
 
 ## 🚀 Features
 
-### 🌐 Browser Extension (Real-Time Protection)
-- Website safety checker (malicious & look-alike domains)
-- Scam & phishing link warnings
-- Ad & tracker blocking (malvertising prevention)
-- Lightweight password hygiene checks
-- Real-time sync with web dashboard
+### 🔌 Browser Extension (**NEW!** - Fully Integrated)
+- ✅ **Site Safety Checker** - Real-time threat analysis with full-screen overlays
+- ✅ **Ad Blocker** - 12 major ad networks blocked (uBlock Origin style)
+- ✅ **Tracker Blocker** - 13 tracking scripts blocked (Google Analytics, Facebook, etc.)
+- ✅ **Password Manager** - Auto-save, auto-fill, strength checker (100-point scale)
+- ✅ **USB Vault Sync** - Hardware-backed password encryption
+- ✅ **Live Stats** - Dashboard integration with real-time updates
+
+**📦 Extension Location:** `extension/` directory
+**📖 Quick Start:** See `EXTENSION_QUICKSTART.md`
+**📚 Full Docs:** See `extension/README.md` and `EXTENSION_INTEGRATION.md`
 
 ### 📊 Web Platform (Command Center)
-- **Cyber Hygiene Score** (0–100) with trends
-- **Scam & Phishing Analyzer** (email, SMS, URLs)
-- **AI Cyber Coach** (chat-based guidance)
-- **Real-time browser activity** insights
-- **Data Breach Exposure Checker** ✅ **LIVE with LeakOSINT API** - 15B+ records
-- **Digital Safety Vault** (encrypted notes & recovery info)
+- **Dashboard** - Extension stats, cyber hygiene score, threat log
+- **Breach Checker** ✅ **LIVE** - 15B+ records via LeakOSINT API (uncensored data)
+- **Scam Analyzer** ✅ **LIVE** - 200+ keyword pattern detection (no API needed)
+- **AI Coach** ✅ **LIVE** - OpenRouter API (nvidia/nemotron-3-nano-30b-a3b:free)
+- **USB Vault** ✅ **LIVE** - Hardware-backed AES-256-GCM encryption
+- **Browser Extension Integration** ✅ **LIVE** - Real-time sync
 
-### 🔑 Secure USB Recovery Key (Planned)
-- Encrypted password & recovery storage (offline)
-- High-risk action confirmation (anti-scam pause)
-- Account recovery without email/SMS
-- USB-based identity verification
+### 💾 USB Vault (Hardware Security)
+- ✅ **AES-256-GCM Encryption** - Military-grade security
+- ✅ **Device-Bound Keys** - PBKDF2 with 100k iterations
+- ✅ **12-Word Recovery Phrases** - BIP39 standard
+- ✅ **Domain Whitelisting** - Only trusted domains can decrypt
+- ✅ **Tamper Detection** - Magic bytes, checksums, access counting
+- ✅ **Extension Sync** - Store browser passwords on USB
+- ✅ **Auto-Lock** - 5-minute inactivity timeout
 
 ## 🎨 Design System
 
 This project uses a **Terminal CLI aesthetic** with:
 - Monospace typography (JetBrains Mono)
-- Terminal green (#33ff00) on black (#0a0a0a)
+- Terminal green (#33ff00) on black (#000)
 - Zero rounded corners (pure rectangles)
 - CRT scanline effects
 - ASCII art and animations
 - Command-line inspired UI elements
 
+**Brand:** Cyber Chaukidaar (chowkidar = guardian in Hindi)
+**Powered by:** OrderOfPhoenix
+
 ## 🛠️ Tech Stack
 
-- **Frontend**: React 18 + Vite
-- **Styling**: Tailwind CSS (custom theme)
+### Website
+- **Frontend**: React 18.2.0 + Vite 5.0.8
+- **Styling**: Tailwind CSS (custom Terminal theme)
 - **Routing**: React Router v6
 - **Icons**: Lucide React
-- **API**: LeakOSINT (15B+ breach records)
-- **Browser Extension**: Chrome Extension Manifest V3
+- **APIs**: 
+  - LeakOSINT (breach data - 15B+ records)
+  - OpenRouter (AI chat - nvidia/nemotron model)
+
+### Browser Extension
+- **Manifest**: V3 (latest Chrome standard)
+- **Background**: Service Worker (600+ lines)
+- **Content Scripts**: Page injection (450+ lines)
+- **Popup**: 3-tab UI (Dashboard/Passwords/Settings)
+- **Blocking**: declarativeNetRequest API
+- **Storage**: chrome.storage.local (encrypted)
+
+### USB Vault
+- **Encryption**: Web Crypto API (AES-256-GCM)
+- **Key Derivation**: PBKDF2 (SHA-256, 100k iterations)
+- **File Access**: File System Access API
+- **Recovery**: BIP39 word list (12 words)
 
 ## 📦 Installation
 
