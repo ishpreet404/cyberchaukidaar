@@ -1,0 +1,158 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-terminal-border;
+  }
+  
+  body {
+    @apply bg-terminal-bg text-terminal-green font-mono;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0a0a0a;
+    border-left: 1px solid #1f521f;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #1f521f;
+    border: 1px solid #33ff00;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #33ff00;
+  }
+}
+
+@layer components {
+  /* CRT Scanlines Overlay */
+  .crt-overlay {
+    pointer-events: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0) 50%,
+      rgba(0, 0, 0, 0.1) 51%
+    );
+    background-size: 100% 4px;
+    z-index: 9999;
+    opacity: 0.3;
+  }
+
+  /* Terminal cursor */
+  .cursor {
+    display: inline-block;
+    width: 0.6em;
+    height: 1em;
+    background-color: #33ff00;
+    animation: blink 1s step-end infinite;
+    vertical-align: text-bottom;
+  }
+
+  /* ASCII Borders */
+  .ascii-border {
+    border: 1px solid #1f521f;
+    position: relative;
+  }
+
+  .ascii-border::before {
+    content: '+';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    color: #33ff00;
+  }
+
+  .ascii-border::after {
+    content: '+';
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    color: #33ff00;
+  }
+
+  /* Terminal Button */
+  .terminal-button {
+    @apply border border-terminal-green text-terminal-green px-4 py-2;
+    @apply hover:bg-terminal-green hover:text-terminal-bg;
+    @apply active:translate-y-px;
+    @apply transition-all duration-100;
+    @apply uppercase tracking-wider;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .terminal-button::before {
+    content: '[ ';
+  }
+
+  .terminal-button::after {
+    content: ' ]';
+  }
+
+  /* Terminal Input */
+  .terminal-input {
+    @apply bg-transparent border-0 border-b border-terminal-green;
+    @apply text-terminal-green font-mono;
+    @apply focus:outline-none focus:border-terminal-green;
+    @apply placeholder:text-terminal-muted;
+  }
+
+  /* Terminal Card/Window */
+  .terminal-window {
+    @apply border border-terminal-green bg-terminal-bg;
+    @apply shadow-none;
+  }
+
+  .terminal-window-header {
+    @apply border-b border-terminal-green bg-terminal-green text-terminal-bg;
+    @apply px-4 py-2 uppercase font-bold tracking-wider;
+  }
+
+  /* Progress Bar */
+  .progress-bar {
+    @apply border border-terminal-green h-6 relative overflow-hidden;
+  }
+
+  .progress-fill {
+    @apply bg-terminal-green h-full transition-all duration-300;
+  }
+
+  /* Status Indicators */
+  .status-ok::before {
+    content: '[OK] ';
+    @apply text-terminal-green;
+  }
+
+  .status-err::before {
+    content: '[ERR] ';
+    @apply text-terminal-red;
+  }
+
+  .status-warn::before {
+    content: '[WARN] ';
+    @apply text-terminal-amber;
+  }
+}
+
+@layer utilities {
+  .typing-animation {
+    overflow: hidden;
+    white-space: nowrap;
+    animation: typing 3.5s steps(40, end);
+  }
+}

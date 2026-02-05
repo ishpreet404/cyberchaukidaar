@@ -1,0 +1,176 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+
+			body {
+				width: 400px;
+				min-height: 500px;
+				background: #0a0a0a;
+				color: #33ff00;
+				font-family: "Courier New", monospace;
+				padding: 16px;
+			}
+
+			.header {
+				border-bottom: 1px solid #1f521f;
+				padding-bottom: 12px;
+				margin-bottom: 16px;
+			}
+
+			.logo {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				font-size: 18px;
+				font-weight: bold;
+				text-shadow: 0 0 5px rgba(51, 255, 0, 0.5);
+			}
+
+			.status {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 12px;
+				border: 1px solid #33ff00;
+				margin-bottom: 16px;
+				background: rgba(51, 255, 0, 0.05);
+			}
+
+			.status.safe {
+				border-color: #33ff00;
+				color: #33ff00;
+			}
+
+			.status.warning {
+				border-color: #ffb000;
+				color: #ffb000;
+			}
+
+			.status.danger {
+				border-color: #ff3333;
+				color: #ff3333;
+			}
+
+			.stat-grid {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 8px;
+				margin-bottom: 16px;
+			}
+
+			.stat {
+				border: 1px solid #1f521f;
+				padding: 8px;
+				text-align: center;
+			}
+
+			.stat-value {
+				font-size: 20px;
+				font-weight: bold;
+				margin-bottom: 4px;
+			}
+
+			.stat-label {
+				font-size: 10px;
+				color: #1f521f;
+			}
+
+			.button {
+				width: 100%;
+				background: transparent;
+				border: 1px solid #33ff00;
+				color: #33ff00;
+				padding: 10px;
+				cursor: pointer;
+				font-family: "Courier New", monospace;
+				font-size: 12px;
+				text-transform: uppercase;
+				margin-bottom: 8px;
+				transition: all 0.1s;
+			}
+
+			.button:hover {
+				background: #33ff00;
+				color: #0a0a0a;
+			}
+
+			.button:before {
+				content: "[ ";
+			}
+
+			.button:after {
+				content: " ]";
+			}
+
+			.footer {
+				border-top: 1px solid #1f521f;
+				padding-top: 12px;
+				margin-top: 16px;
+				font-size: 10px;
+				color: #1f521f;
+				text-align: center;
+			}
+
+			.cursor {
+				display: inline-block;
+				width: 8px;
+				height: 14px;
+				background: #33ff00;
+				animation: blink 1s step-end infinite;
+				vertical-align: text-bottom;
+			}
+
+			@keyframes blink {
+				0%,
+				50% {
+					opacity: 1;
+				}
+				51%,
+				100% {
+					opacity: 0;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="header">
+			<div class="logo">🛡️ CYBERGUARD</div>
+		</div>
+
+		<div id="site-status" class="status safe">
+			<div>
+				<div style="font-size: 14px; font-weight: bold">[SITE: SAFE]</div>
+				<div style="font-size: 10px; color: #1f521f" id="current-url">
+					Loading...
+				</div>
+			</div>
+			<div class="cursor"></div>
+		</div>
+
+		<div class="stat-grid">
+			<div class="stat">
+				<div class="stat-value" id="threats-blocked">0</div>
+				<div class="stat-label">BLOCKED TODAY</div>
+			</div>
+			<div class="stat">
+				<div class="stat-value" id="hygiene-score">--</div>
+				<div class="stat-label">HYGIENE SCORE</div>
+			</div>
+		</div>
+
+		<button class="button" id="scan-page">Scan This Page</button>
+		<button class="button" id="open-dashboard">Open Dashboard</button>
+		<button class="button" id="report-site">Report Suspicious Site</button>
+
+		<div class="footer">$ CYBERGUARD v1.0.0 | [ACTIVE]</div>
+
+		<script src="popup.js"></script>
+	</body>
+</html>
