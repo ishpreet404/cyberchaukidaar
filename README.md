@@ -20,7 +20,7 @@ CyberGuard is a pure-software cybersecurity ecosystem designed to protect indivi
 - **Scam & Phishing Analyzer** (email, SMS, URLs)
 - **AI Cyber Coach** (chat-based guidance)
 - **Real-time browser activity** insights
-- **Data Breach Exposure Checker** (core feature)
+- **Data Breach Exposure Checker** ✅ **LIVE with LeakOSINT API** - 15B+ records
 - **Digital Safety Vault** (encrypted notes & recovery info)
 
 ### 🔑 Secure USB Recovery Key (Planned)
@@ -45,6 +45,7 @@ This project uses a **Terminal CLI aesthetic** with:
 - **Styling**: Tailwind CSS (custom theme)
 - **Routing**: React Router v6
 - **Icons**: Lucide React
+- **API**: LeakOSINT (15B+ breach records)
 - **Browser Extension**: Chrome Extension Manifest V3
 
 ## 📦 Installation
