@@ -171,9 +171,9 @@ cyberguard/
 --terminal-bg: #0a0a0a
 --terminal-green: #33ff00
 --terminal-amber: #ffb000
---terminal-muted: #1f521f
+--terminal-muted: #3A9B3A
 --terminal-red: #ff3333
---terminal-border: #1f521f
+--terminal-border: #3A9B3A
 \`\`\`
 
 ## 🔧 Customization

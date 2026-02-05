@@ -230,7 +230,7 @@ Background:  #0a0a0a  (Deep black)
 Primary:     #33ff00  (Terminal green)
 Warning:     #ffb000  (Amber)
 Error:       #ff3333  (Red)
-Muted:       #1f521f  (Dim green)
+Muted:       #3A9B3A  (Dim green)
 \`\`\`
 
 ### Typography

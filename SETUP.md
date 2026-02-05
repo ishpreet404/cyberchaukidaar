@@ -140,9 +140,9 @@ colors: {
     bg: '#0a0a0a',        // Background
     green: '#33ff00',     // Primary
     amber: '#ffb000',     // Warning
-    muted: '#1f521f',     // Muted
+    muted: '#3A9B3A',     // Muted
     red: '#ff3333',       // Error
-    border: '#1f521f',    // Borders
+    border: '#3A9B3A',    // Borders
   }
 }
 \`\`\`
