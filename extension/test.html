@@ -1,0 +1,193 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Extension Test Page</title>
+		<style>
+			body {
+				font-family: "Courier New", monospace;
+				background: #000;
+				color: #33ff00;
+				padding: 40px;
+				max-width: 800px;
+				margin: 0 auto;
+			}
+			h1 {
+				border-bottom: 2px solid #33ff00;
+				padding-bottom: 10px;
+			}
+			.test-section {
+				border: 1px solid #33ff00;
+				padding: 20px;
+				margin: 20px 0;
+			}
+			button {
+				background: #33ff00;
+				color: #000;
+				border: none;
+				padding: 10px 20px;
+				font-family: inherit;
+				font-weight: bold;
+				cursor: pointer;
+				margin: 5px;
+			}
+			button:hover {
+				opacity: 0.8;
+			}
+			input {
+				background: #000;
+				border: 1px solid #33ff00;
+				color: #33ff00;
+				padding: 8px;
+				font-family: inherit;
+				margin: 5px;
+			}
+			.status {
+				margin-top: 10px;
+				padding: 10px;
+				border: 1px solid #33ff00;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>🛡️ Cyber Chaukidaar Extension Test</h1>
+
+		<div class="test-section">
+			<h2>1. Site Safety Check</h2>
+			<p>
+				This page should be scanned automatically. Check extension popup for
+				"Sites Scanned" count.
+			</p>
+			<div class="status" id="scan-status">Status: Page loaded ✓</div>
+		</div>
+
+		<div class="test-section">
+			<h2>2. Password Manager Test</h2>
+			<p>Enter test credentials and submit to test password save prompt:</p>
+			<form id="test-form">
+				<div>
+					<input
+						type="email"
+						name="username"
+						placeholder="test@example.com"
+						value="test@example.com"
+					/>
+				</div>
+				<div>
+					<input
+						type="password"
+						id="test-password"
+						placeholder="Enter password"
+					/>
+				</div>
+				<div>
+					<button type="submit">Submit Test Login</button>
+				</div>
+			</form>
+			<div class="status" id="form-status">
+				Enter password to test strength checker
+			</div>
+		</div>
+
+		<div class="test-section">
+			<h2>3. Ad Blocking Test</h2>
+			<p>Extension should block these ad network requests:</p>
+			<button onclick="testAdBlocking()">Test Ad Networks</button>
+			<div class="status" id="ad-status">Click button to test</div>
+		</div>
+
+		<div class="test-section">
+			<h2>4. Tracker Blocking Test</h2>
+			<p>Extension should block these tracker requests:</p>
+			<button onclick="testTrackerBlocking()">Test Trackers</button>
+			<div class="status" id="tracker-status">Click button to test</div>
+		</div>
+
+		<div class="test-section">
+			<h2>5. Extension Stats</h2>
+			<p>Click extension icon in toolbar to see:</p>
+			<ul>
+				<li>Ads Blocked: Should increment when testing</li>
+				<li>Trackers Blocked: Should increment when testing</li>
+				<li>Sites Scanned: Should be at least 1 (this page)</li>
+				<li>Passwords Saved: Check after submitting form above</li>
+			</ul>
+		</div>
+
+		<script>
+			// Form submission test
+			document.getElementById("test-form").addEventListener("submit", (e) => {
+				e.preventDefault();
+				document.getElementById("form-status").textContent =
+					"Form submitted! Check for password save prompt (wait 0.5s)";
+
+				// Extension should show save prompt in 0.5 seconds
+				setTimeout(() => {
+					document.getElementById("form-status").textContent =
+						"If you saw save prompt, test passed ✓ Check extension popup → Passwords tab";
+				}, 2000);
+			});
+
+			// Password strength indicator test
+			document
+				.getElementById("test-password")
+				.addEventListener("input", (e) => {
+					const pwd = e.target.value;
+					if (pwd.length > 0) {
+						document.getElementById("form-status").textContent =
+							`Testing password: "${pwd}" - Check for strength indicator below input field`;
+					}
+				});
+
+			// Test ad blocking
+			function testAdBlocking() {
+				document.getElementById("ad-status").textContent =
+					"Testing ad networks...";
+
+				// Try to load ad scripts (will be blocked)
+				const adDomains = [
+					"https://doubleclick.net/test.js",
+					"https://googlesyndication.com/test.js",
+					"https://googleadservices.com/test.js",
+				];
+
+				let attempted = 0;
+				adDomains.forEach((url) => {
+					fetch(url, { mode: "no-cors" }).catch(() => attempted++);
+				});
+
+				setTimeout(() => {
+					document.getElementById("ad-status").textContent =
+						`Attempted ${adDomains.length} ad requests. Check extension popup for "Ads Blocked" count increase!`;
+				}, 1000);
+			}
+
+			// Test tracker blocking
+			function testTrackerBlocking() {
+				document.getElementById("tracker-status").textContent =
+					"Testing trackers...";
+
+				// Try to load tracker scripts (will be blocked)
+				const trackerDomains = [
+					"https://google-analytics.com/test.js",
+					"https://googletagmanager.com/test.js",
+					"https://connect.facebook.net/test.js",
+				];
+
+				let attempted = 0;
+				trackerDomains.forEach((url) => {
+					fetch(url, { mode: "no-cors" }).catch(() => attempted++);
+				});
+
+				setTimeout(() => {
+					document.getElementById("tracker-status").textContent =
+						`Attempted ${trackerDomains.length} tracker requests. Check extension popup for "Trackers Blocked" count increase!`;
+				}, 1000);
+			}
+
+			// Auto-test on load
+			console.log("Cyber Chaukidaar Test Page Loaded");
+			console.log("Extension should scan this page automatically");
+			console.log("Check extension popup for stats!");
+		</script>
+	</body>
+</html>

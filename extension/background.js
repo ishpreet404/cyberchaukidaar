@@ -22,19 +22,89 @@ chrome.runtime.onInstalled.addListener(() => {
 
 	// Initialize filter lists
 	initializeFilterLists();
+
+	// Set up webRequest listener for blocking stats
+	setupBlockingListeners();
 });
 
-// Track blocked requests using declarativeNetRequest
-chrome.declarativeNetRequest.onRuleMatchedDebug.addListener((details) => {
-	if (details.rule.rulesetId === "ads_ruleset") {
-		stats.adsBlocked++;
-	} else if (details.rule.rulesetId === "trackers_ruleset") {
-		stats.trackersBlocked++;
-	}
+// Setup webRequest listeners to track blocks
+function setupBlockingListeners() {
+	// List of ad/tracker domains
+	const adDomains = [
+		"doubleclick.net",
+		"googlesyndication.com",
+		"googleadservices.com",
+		"advertising.com",
+		"adnxs.com",
+		"adsrvr.org",
+		"criteo.com",
+		"outbrain.com",
+		"taboola.com",
+		"pubmatic.com",
+		"quantserve.com",
+		"revcontent.com",
+		"pagead2.googlesyndication.com",
+		"adservice.google",
+		"amazon-adsystem.com",
+		"media.net",
+	];
 
-	saveStats();
-	broadcastStats();
-});
+	const trackerDomains = [
+		"google-analytics.com",
+		"googletagmanager.com",
+		"facebook.net",
+		"connect.facebook.net",
+		"scorecardresearch.com",
+		"hotjar.com",
+		"mouseflow.com",
+		"fullstory.com",
+		"mixpanel.com",
+		"segment.com",
+		"amplitude.com",
+		"heap.io",
+		"intercom.io",
+	];
+
+	// Monitor requests and increment counters
+	chrome.webRequest.onBeforeRequest.addListener(
+		(details) => {
+			const url = details.url.toLowerCase();
+
+			// Check if it's an ad
+			if (adDomains.some((domain) => url.includes(domain))) {
+				stats.adsBlocked++;
+				saveStats();
+				broadcastStats();
+			}
+			// Check if it's a tracker
+			else if (trackerDomains.some((domain) => url.includes(domain))) {
+				stats.trackersBlocked++;
+				saveStats();
+				broadcastStats();
+			}
+
+			// Let declarativeNetRequest handle actual blocking
+		},
+		{ urls: ["<all_urls>"] },
+	);
+}
+
+// Track blocked requests using declarativeNetRequest (if available)
+if (
+	chrome.declarativeNetRequest &&
+	chrome.declarativeNetRequest.onRuleMatchedDebug
+) {
+	chrome.declarativeNetRequest.onRuleMatchedDebug.addListener((details) => {
+		if (details.rule.rulesetId === "ads_ruleset") {
+			stats.adsBlocked++;
+		} else if (details.rule.rulesetId === "trackers_ruleset") {
+			stats.trackersBlocked++;
+		}
+
+		saveStats();
+		broadcastStats();
+	});
+}
 
 // Site safety checker - runs on every navigation
 chrome.webNavigation.onCommitted.addListener(async (details) => {
@@ -44,14 +114,17 @@ chrome.webNavigation.onCommitted.addListener(async (details) => {
 
 		// Skip internal pages
 		if (url.protocol === "chrome:" || url.protocol === "chrome-extension:") {
+			console.log("Cyber Chaukidaar: Skipping internal page:", url.href);
 			return;
 		}
 
+		console.log("Cyber Chaukidaar: Scanning site:", url.hostname);
 		stats.sitesScanned++;
 		saveStats();
 
 		// Check site safety
 		const safetyResult = await checkSiteSafety(url.hostname, url.href);
+		console.log("Cyber Chaukidaar: Safety check result:", safetyResult);
 
 		// Send to content script for overlay
 		chrome.tabs
@@ -60,7 +133,15 @@ chrome.webNavigation.onCommitted.addListener(async (details) => {
 				result: safetyResult,
 				url: url.hostname,
 			})
-			.catch(() => {});
+			.then(() => {
+				console.log(
+					"Cyber Chaukidaar: Safety result sent to tab",
+					details.tabId,
+				);
+			})
+			.catch((error) => {
+				console.error("Cyber Chaukidaar: Failed to send safety result:", error);
+			});
 	}
 });
 
@@ -247,6 +328,7 @@ async function savePassword(data) {
 					lastUpdated: Date.now(),
 					lastUsed: Date.now(),
 				};
+				console.log(`✓ Updated password for ${data.username}@${data.domain}`);
 			} else {
 				// Add new
 				passwords[data.domain].push({
@@ -256,6 +338,7 @@ async function savePassword(data) {
 					createdAt: Date.now(),
 					lastUsed: Date.now(),
 				});
+				console.log(`✓ Saved new password for ${data.username}@${data.domain}`);
 			}
 
 			chrome.storage.local.set({ passwords }, () => {
@@ -264,6 +347,8 @@ async function savePassword(data) {
 					0,
 				);
 				saveStats();
+				broadcastStats(); // Broadcast immediately after save
+				console.log(`Total passwords saved: ${stats.passwordsSaved}`);
 				resolve(true);
 			});
 		});
@@ -361,10 +446,10 @@ function calculatePasswordStrength(password) {
 
 	let rating = "WEAK";
 	let color = "#ff0000";
-	if (score >= 80) {
+	if (score >= 60) {
 		rating = "STRONG";
 		color = "#33ff00";
-	} else if (score >= 60) {
+	} else if (score >= 35) {
 		rating = "MEDIUM";
 		color = "#ffaa00";
 	}

@@ -13,6 +13,10 @@
 	// Listen for site safety check results from background
 	chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		if (request.type === "SITE_SAFETY_CHECK") {
+			console.log(
+				"Cyber Chaukidaar: Received safety check, threat level:",
+				request.result.threat,
+			);
 			displaySafetyOverlay(request.result);
 			currentSafetyStatus = request.result;
 			sendResponse({ received: true });
@@ -34,8 +38,9 @@
 			safetyOverlay.remove();
 		}
 
-		// Only show overlay for suspicious/dangerous sites
-		if (safetyResult.threat === "SAFE") {
+		// Show overlay for ALL sites (safe = green banner at top, suspicious = warning)
+		// Skip only for chrome:// and extension pages
+		if (!safetyResult || !safetyResult.hostname) {
 			return;
 		}
 
@@ -43,7 +48,69 @@
 		safetyOverlay = document.createElement("div");
 		safetyOverlay.id = "cyber-chaukidaar-overlay";
 
+		const isSafe = safetyResult.threat === "SAFE";
 		const isDangerous = safetyResult.threat === "DANGEROUS";
+
+		// For SAFE sites, show small banner at top instead of full overlay
+		if (isSafe) {
+			safetyOverlay.innerHTML = `
+				<div style="
+					position: fixed;
+					top: 0;
+					left: 0;
+					right: 0;
+					background: linear-gradient(135deg, #000 0%, #003300 100%);
+					color: #33ff00;
+					border-bottom: 2px solid #33ff00;
+					padding: 10px 20px;
+					z-index: 2147483647;
+					display: flex;
+					align-items: center;
+					justify-content: space-between;
+					font-family: 'JetBrains Mono', 'Courier New', monospace;
+					font-size: 12px;
+					box-shadow: 0 2px 10px rgba(51, 255, 0, 0.3);
+				">
+					<div style="display: flex; align-items: center; gap: 10px;">
+						<span style="font-size: 16px;">✓</span>
+						<span><strong>CYBER CHAUKIDAAR:</strong> ${safetyResult.hostname} is SAFE (Score: ${safetyResult.score}/100)</span>
+					</div>
+					<button id="cyber-close-banner" style="
+						background: transparent;
+						color: #33ff00;
+						border: 1px solid #33ff00;
+						padding: 5px 10px;
+						cursor: pointer;
+						font-family: 'JetBrains Mono', monospace;
+						font-size: 10px;
+					">CLOSE</button>
+				</div>
+			`;
+
+			document.documentElement.appendChild(safetyOverlay);
+
+			// Auto-dismiss after 3 seconds or on click
+			const closeBanner = document.getElementById("cyber-close-banner");
+			if (closeBanner) {
+				closeBanner.addEventListener("click", () => {
+					if (safetyOverlay) {
+						safetyOverlay.remove();
+						safetyOverlay = null;
+					}
+				});
+			}
+
+			setTimeout(() => {
+				if (safetyOverlay) {
+					safetyOverlay.remove();
+					safetyOverlay = null;
+				}
+			}, 3000);
+
+			return;
+		}
+
+		// For SUSPICIOUS/DANGEROUS sites, show full screen overlay
 		const bgColor = isDangerous
 			? "rgba(255, 0, 0, 0.95)"
 			: "rgba(255, 170, 0, 0.95)";
@@ -206,21 +273,75 @@
 
 	// Handle form submission (password save prompt)
 	async function handleFormSubmit(e, form) {
-		const usernameField = form.querySelector(
-			'input[type="email"], input[type="text"], input[name*="user"], input[name*="email"]',
-		);
-		const passwordField = form.querySelector('input[type="password"]');
-
-		if (!usernameField || !passwordField || !passwordField.value) {
+		if (form.dataset.cyberSaving === "true") {
 			return;
 		}
 
-		// Wait a bit for form to submit, then prompt to save
+		console.log("Cyber Chaukidaar: Form submit handler called");
+
+		const usernameField = form.querySelector(
+			'input[type="email"], input[type="text"], input[name*="user"], input[name*="email"], input[name*="login"]',
+		);
+		const passwordField = form.querySelector('input[type="password"]');
+
+		console.log(
+			"Cyber Chaukidaar: Username field:",
+			!!usernameField,
+			"Password field:",
+			!!passwordField,
+		);
+
+		if (!passwordField || !passwordField.value) {
+			console.log(
+				"Cyber Chaukidaar: No password field or empty value - skipping",
+			);
+			return;
+		}
+
+		// Get username value (fallback to email if no username field)
+		const username = usernameField
+			? usernameField.value
+			: "user@" + window.location.hostname;
+
+		console.log(
+			"Cyber Chaukidaar: Username:",
+			username,
+			"Password length:",
+			passwordField.value.length,
+		);
+
+		if (!username) {
+			console.log("Cyber Chaukidaar: No username - skipping");
+			return;
+		}
+
+		console.log("Cyber Chaukidaar: Will prompt to save in 0.5 seconds...");
+
+		// Prevent default once so the prompt can appear before navigation
+		form.dataset.cyberSaving = "true";
+		e.preventDefault();
+
+		// Prompt to save immediately (reliable)
 		setTimeout(async () => {
+			// Check if already saved
+			const existing = await chrome.runtime.sendMessage({
+				type: "GET_PASSWORDS",
+				domain: window.location.hostname,
+			});
+
+			if (existing && existing.passwords) {
+				const alreadyExists = existing.passwords.some(
+					(p) => p.username === username && p.password === passwordField.value,
+				);
+				if (alreadyExists) {
+					return; // Don't prompt if already saved
+				}
+			}
+
 			const shouldSave = confirm(
 				`🔐 Cyber Chaukidaar Password Manager\n\n` +
 					`Save password for ${window.location.hostname}?\n\n` +
-					`Username: ${usernameField.value}`,
+					`Username: ${username}`,
 			);
 
 			if (shouldSave) {
@@ -228,16 +349,28 @@
 					type: "SAVE_PASSWORD",
 					data: {
 						domain: window.location.hostname,
-						username: usernameField.value,
+						username: username,
 						password: passwordField.value,
 					},
 				});
 
 				if (response && response.success) {
 					showNotification("✓ Password saved securely", "#33ff00");
+				} else {
+					showNotification("✗ Failed to save password", "#ff0000");
 				}
 			}
-		}, 1000);
+
+			// Allow the form to submit after prompt
+			setTimeout(() => {
+				form.dataset.cyberSaving = "";
+				if (e.submitter && typeof form.requestSubmit === "function") {
+					form.requestSubmit(e.submitter);
+				} else {
+					form.submit();
+				}
+			}, 0);
+		}, 0);
 	}
 
 	// Show notification

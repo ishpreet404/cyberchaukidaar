@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Cyber Chaukidaar - Extension Debug</title>
+		<style>
+			body {
+				font-family: "Courier New", monospace;
+				background: #000;
+				color: #33ff00;
+				padding: 20px;
+				margin: 0;
+			}
+			.section {
+				background: #111;
+				border: 2px solid #33ff00;
+				padding: 15px;
+				margin: 15px 0;
+			}
+			.section h2 {
+				margin-top: 0;
+				color: #33ff00;
+			}
+			.test {
+				margin: 10px 0;
+				padding: 10px;
+				background: #222;
+			}
+			.pass {
+				color: #33ff00;
+			}
+			.fail {
+				color: #ff0000;
+			}
+			.pending {
+				color: #ffaa00;
+			}
+			button {
+				background: #33ff00;
+				color: #000;
+				border: none;
+				padding: 10px 20px;
+				font-family: "Courier New", monospace;
+				font-weight: bold;
+				cursor: pointer;
+				margin: 5px;
+			}
+			button:hover {
+				background: #00ff00;
+			}
+			#results {
+				white-space: pre-wrap;
+				font-size: 12px;
+			}
+			.log {
+				margin: 5px 0;
+				padding: 5px;
+				background: #000;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>🔍 Cyber Chaukidaar Extension Debug</h1>
+
+		<div class="section">
+			<h2>Extension Status</h2>
+			<div id="extension-status" class="test pending">Checking...</div>
+			<button onclick="checkExtension()">Re-check Extension</button>
+		</div>
+
+		<div class="section">
+			<h2>Site Safety Test</h2>
+			<div id="safety-status" class="test pending">Waiting for test...</div>
+			<button onclick="testSafety()">Test Safety Check</button>
+			<div id="safety-results" class="log"></div>
+		</div>
+
+		<div class="section">
+			<h2>Password Manager Test</h2>
+			<div id="password-status" class="test pending">Ready to test</div>
+			<form id="test-form" style="margin: 10px 0">
+				<input
+					type="text"
+					id="test-username"
+					placeholder="Username"
+					value="testuser@example.com"
+					style="
+						background: #222;
+						color: #33ff00;
+						border: 1px solid #33ff00;
+						padding: 5px;
+						margin: 5px;
+					"
+				/><br />
+				<input
+					type="password"
+					id="test-password"
+					placeholder="Password"
+					value="Test@1234567890"
+					style="
+						background: #222;
+						color: #33ff00;
+						border: 1px solid #33ff00;
+						padding: 5px;
+						margin: 5px;
+					"
+				/><br />
+				<button type="submit" style="margin-top: 10px">Submit Test Form</button>
+			</form>
+			<div id="password-results" class="log"></div>
+		</div>
+
+		<div class="section">
+			<h2>Stats Test</h2>
+			<div id="stats-status" class="test pending">Click to load stats</div>
+			<button onclick="testStats()">Get Current Stats</button>
+			<div id="stats-results" class="log"></div>
+		</div>
+
+		<div class="section">
+			<h2>Console Logs</h2>
+			<button onclick="clearLogs()">Clear Logs</button>
+			<button onclick="exportLogs()">Export Logs</button>
+			<div
+				id="console-logs"
+				style="
+					max-height: 300px;
+					overflow-y: auto;
+					background: #000;
+					padding: 10px;
+				"
+			></div>
+		</div>
+
+		<script>
+			// Store logs
+			let logs = [];
+
+			function log(message, type = "info") {
+				const timestamp = new Date().toLocaleTimeString();
+				const logEntry = `[${timestamp}] [${type.toUpperCase()}] ${message}`;
+				logs.push(logEntry);
+
+				const logsDiv = document.getElementById("console-logs");
+				const logElement = document.createElement("div");
+				logElement.className =
+					"log " +
+					(type === "error" ? "fail" : type === "success" ? "pass" : "pending");
+				logElement.textContent = logEntry;
+				logsDiv.appendChild(logElement);
+				logsDiv.scrollTop = logsDiv.scrollHeight;
+
+				console.log(logEntry);
+			}
+
+			// Check if extension is loaded
+			async function checkExtension() {
+				log("Checking extension availability...", "info");
+				const statusDiv = document.getElementById("extension-status");
+
+				if (typeof chrome === "undefined" || !chrome.runtime) {
+					statusDiv.innerHTML =
+						'<span class="fail">✗ Chrome extension API not available</span>';
+					log("Chrome extension API not found", "error");
+					return false;
+				}
+
+				try {
+					const response = await chrome.runtime.sendMessage({
+						type: "GET_STATS",
+					});
+					if (response && response.stats) {
+						statusDiv.innerHTML =
+							'<span class="pass">✓ Extension is loaded and responding</span>';
+						log("Extension responded successfully", "success");
+						log("Extension ID: " + chrome.runtime.id, "info");
+						return true;
+					} else {
+						statusDiv.innerHTML =
+							'<span class="fail">✗ Extension loaded but not responding correctly</span>';
+						log(
+							"Extension response invalid: " + JSON.stringify(response),
+							"error",
+						);
+						return false;
+					}
+				} catch (error) {
+					statusDiv.innerHTML =
+						'<span class="fail">✗ Extension error: ' +
+						error.message +
+						"</span>";
+					log("Extension error: " + error.message, "error");
+					log("Stack: " + error.stack, "error");
+					return false;
+				}
+			}
+
+			// Test site safety check
+			async function testSafety() {
+				log("Testing site safety check...", "info");
+				const statusDiv = document.getElementById("safety-status");
+				const resultsDiv = document.getElementById("safety-results");
+
+				statusDiv.innerHTML =
+					'<span class="pending">⏳ Testing safety check...</span>';
+
+				// Site safety check should happen automatically via webNavigation
+				// Check if we received the message
+				log(
+					"Waiting for safety overlay (should appear at top of page)...",
+					"info",
+				);
+
+				setTimeout(() => {
+					const overlay = document.getElementById("cyber-chaukidaar-overlay");
+					if (overlay) {
+						statusDiv.innerHTML =
+							'<span class="pass">✓ Safety overlay detected!</span>';
+						resultsDiv.textContent =
+							"Overlay HTML length: " +
+							overlay.innerHTML.length +
+							" characters";
+						log("Safety overlay found on page", "success");
+					} else {
+						statusDiv.innerHTML =
+							'<span class="fail">✗ No safety overlay found</span>';
+						resultsDiv.textContent =
+							'No overlay element with id="cyber-chaukidaar-overlay" found in DOM';
+						log(
+							"Safety overlay NOT found - check if content.js is running",
+							"error",
+						);
+						log("Checking for content script...", "info");
+						log(
+							'Content script should log "Cyber Chaukidaar: Content script loaded"',
+							"info",
+						);
+					}
+				}, 1000);
+			}
+
+			// Test password manager
+			document
+				.getElementById("test-form")
+				.addEventListener("submit", async (e) => {
+					e.preventDefault();
+					log("Form submitted - testing password save...", "info");
+
+					const statusDiv = document.getElementById("password-status");
+					const resultsDiv = document.getElementById("password-results");
+
+					const username = document.getElementById("test-username").value;
+					const password = document.getElementById("test-password").value;
+
+					log("Username: " + username, "info");
+					log("Password length: " + password.length, "info");
+
+					statusDiv.innerHTML =
+						'<span class="pending">⏳ Waiting for save prompt (0.5s delay)...</span>';
+
+					// The content script should prompt to save after 0.5s
+					setTimeout(() => {
+						statusDiv.innerHTML =
+							'<span class="pending">⏳ Did you see save prompt? Check if dialog appeared</span>';
+						resultsDiv.textContent =
+							"Note: Content script should show confirm() dialog asking to save password.\n" +
+							"If no dialog appeared, content script may not be running.";
+						log(
+							"If no save dialog appeared, check browser console for content script errors",
+							"error",
+						);
+					}, 600);
+				});
+
+			// Test stats
+			async function testStats() {
+				log("Fetching current stats...", "info");
+				const statusDiv = document.getElementById("stats-status");
+				const resultsDiv = document.getElementById("stats-results");
+
+				try {
+					const response = await chrome.runtime.sendMessage({
+						type: "GET_STATS",
+					});
+					if (response && response.stats) {
+						const stats = response.stats;
+						statusDiv.innerHTML =
+							'<span class="pass">✓ Stats loaded successfully</span>';
+						resultsDiv.textContent =
+							"Ads Blocked: " +
+							stats.adsBlocked +
+							"\n" +
+							"Trackers Blocked: " +
+							stats.trackersBlocked +
+							"\n" +
+							"Sites Scanned: " +
+							stats.sitesScanned +
+							"\n" +
+							"Passwords Saved: " +
+							stats.passwordsSaved +
+							"\n" +
+							"Last Sync: " +
+							(stats.lastSync || "Never");
+						log("Stats retrieved: " + JSON.stringify(stats), "success");
+					} else {
+						statusDiv.innerHTML =
+							'<span class="fail">✗ Failed to get stats</span>';
+						resultsDiv.textContent = "Response: " + JSON.stringify(response);
+						log("Invalid stats response", "error");
+					}
+				} catch (error) {
+					statusDiv.innerHTML =
+						'<span class="fail">✗ Error: ' + error.message + "</span>";
+					resultsDiv.textContent = error.stack;
+					log("Stats error: " + error.message, "error");
+				}
+			}
+
+			function clearLogs() {
+				logs = [];
+				document.getElementById("console-logs").innerHTML = "";
+				log("Logs cleared", "info");
+			}
+
+			function exportLogs() {
+				const blob = new Blob([logs.join("\n")], { type: "text/plain" });
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement("a");
+				a.href = url;
+				a.download = "cyber-chaukidaar-debug-" + Date.now() + ".txt";
+				a.click();
+				log("Logs exported", "success");
+			}
+
+			// Auto-check on load
+			window.addEventListener("load", () => {
+				log("Debug page loaded", "info");
+				log("URL: " + window.location.href, "info");
+				checkExtension();
+
+				// Check for content script
+				setTimeout(() => {
+					log("Checking for content script indicators...", "info");
+					const overlay = document.getElementById("cyber-chaukidaar-overlay");
+					if (overlay) {
+						log("Content script IS running (overlay found)", "success");
+					} else {
+						log(
+							"Content script MAY NOT be running (no overlay found)",
+							"error",
+						);
+						log(
+							'Check browser console (F12) for "Cyber Chaukidaar: Content script loaded"',
+							"info",
+						);
+					}
+				}, 2000);
+			});
+
+			// Listen for messages from extension
+			window.addEventListener("message", (event) => {
+				if (event.data && event.data.type) {
+					log("Received message: " + event.data.type, "info");
+				}
+			});
+

@@ -1,0 +1,211 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Simple Extension Test</title>
+		<style>
+			body {
+				font-family: monospace;
+				background: #000;
+				color: #33ff00;
+				padding: 40px;
+				font-size: 16px;
+			}
+			.pass {
+				color: #33ff00;
+				font-size: 24px;
+			}
+			.fail {
+				color: #ff0000;
+				font-size: 24px;
+			}
+			button {
+				background: #33ff00;
+				color: #000;
+				border: none;
+				padding: 15px 30px;
+				font-size: 16px;
+				font-weight: bold;
+				cursor: pointer;
+				margin: 10px 5px;
+			}
+			.section {
+				background: #111;
+				padding: 20px;
+				margin: 20px 0;
+				border: 2px solid #33ff00;
+			}
+			pre {
+				background: #000;
+				padding: 10px;
+				border-left: 3px solid #33ff00;
+				overflow-x: auto;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>🔍 Cyber Chaukidaar - Simple Test</h1>
+
+		<div class="section">
+			<h2>Step 1: Check Chrome API</h2>
+			<div id="chrome-api-status">Testing...</div>
+			<pre id="chrome-api-details"></pre>
+		</div>
+
+		<div class="section">
+			<h2>Step 2: Try to Contact Extension</h2>
+			<button onclick="testExtension()">Test Extension Connection</button>
+			<div id="extension-status"></div>
+			<pre id="extension-details"></pre>
+		</div>
+
+		<div class="section">
+			<h2>Step 3: Manual Instructions</h2>
+			<div style="color: #ffaa00">
+				<p><strong>If tests fail above, do this:</strong></p>
+				<ol>
+					<li>Open new tab: <code>chrome://extensions/</code></li>
+					<li>Find "Cyber Chaukidaar" extension</li>
+					<li>Make sure toggle switch is ON (blue)</li>
+					<li>Click the reload icon (⟳)</li>
+					<li><strong>Close ALL browser tabs</strong></li>
+					<li>Open this page again</li>
+					<li>Click "Test Extension Connection" button above</li>
+				</ol>
+			</div>
+		</div>
+
+		<div class="section">
+			<h2>Step 4: Check Background Worker</h2>
+			<div style="color: #ffaa00">
+				<ol>
+					<li>Go to: <code>chrome://extensions/</code></li>
+					<li>Find "Cyber Chaukidaar"</li>
+					<li>Click blue link: <strong>"service worker"</strong></li>
+					<li>A DevTools window opens</li>
+					<li>
+						Look for message:
+						<code>"Cyber Chaukidaar Extension Installed"</code>
+					</li>
+					<li>If you see errors (red text), screenshot them</li>
+				</ol>
+			</div>
+		</div>
+
+		<div class="section">
+			<h2>Step 5: Check Content Script</h2>
+			<div style="color: #ffaa00">
+				<ol>
+					<li>Press <strong>F12</strong> on this page</li>
+					<li>Go to <strong>Console</strong> tab</li>
+					<li>
+						Look for: <code>"Cyber Chaukidaar: Content script loaded"</code>
+					</li>
+					<li>Also look for: Green banner at top of this page</li>
+				</ol>
+			</div>
+			<button onclick="checkOverlay()">Check if Overlay Exists</button>
+			<div id="overlay-status"></div>
+		</div>
+
+		<script>
+			// Check Chrome API immediately
+			window.addEventListener("load", function () {
+				const chromeStatus = document.getElementById("chrome-api-status");
+				const chromeDetails = document.getElementById("chrome-api-details");
+
+				if (typeof chrome === "undefined") {
+					chromeStatus.innerHTML =
+						'<span class="fail">✗ FAIL: Chrome API not available</span>';
+					chromeDetails.textContent =
+						"This page must be opened in Chrome/Edge browser.";
+				} else if (!chrome.runtime) {
+					chromeStatus.innerHTML =
+						'<span class="fail">✗ FAIL: chrome.runtime not available</span>';
+					chromeDetails.textContent =
+						"Extension APIs not accessible. Are you in Chrome?";
+				} else {
+					chromeStatus.innerHTML =
+						'<span class="pass">✓ PASS: Chrome API available</span>';
+					chromeDetails.textContent =
+						"chrome.runtime.id = " + (chrome.runtime.id || "undefined");
+				}
+			});
+
+			async function testExtension() {
+				const statusDiv = document.getElementById("extension-status");
+				const detailsDiv = document.getElementById("extension-details");
+
+				statusDiv.innerHTML =
+					'<span style="color: #ffaa00;">⏳ Testing...</span>';
+				detailsDiv.textContent = "";
+
+				try {
+					if (typeof chrome === "undefined" || !chrome.runtime) {
+						throw new Error("Chrome extension API not available");
+					}
+
+					const response = await chrome.runtime.sendMessage({
+						type: "GET_STATS",
+					});
+
+					if (response && response.stats) {
+						statusDiv.innerHTML =
+							'<span class="pass">✓ SUCCESS: Extension is responding!</span>';
+						detailsDiv.textContent =
+							"Extension ID: " +
+							chrome.runtime.id +
+							"\n" +
+							"Stats received:\n" +
+							"  Ads Blocked: " +
+							response.stats.adsBlocked +
+							"\n" +
+							"  Trackers Blocked: " +
+							response.stats.trackersBlocked +
+							"\n" +
+							"  Sites Scanned: " +
+							response.stats.sitesScanned +
+							"\n" +
+							"  Passwords Saved: " +
+							response.stats.passwordsSaved;
+					} else {
+						statusDiv.innerHTML =
+							'<span class="fail">✗ FAIL: Extension responded but invalid data</span>';
+						detailsDiv.textContent =
+							"Response: " + JSON.stringify(response, null, 2);
+					}
+				} catch (error) {
+					statusDiv.innerHTML =
+						'<span class="fail">✗ FAIL: Cannot contact extension</span>';
+					detailsDiv.textContent =
+						"Error: " +
+						error.message +
+						"\n\n" +
+						"Common causes:\n" +
+						"1. Extension not loaded in Chrome\n" +
+						"2. Extension disabled (toggle OFF)\n" +
+						"3. Background worker crashed\n" +
+						"4. Need to reload extension\n\n" +
+						"Follow Step 3 instructions above!";
+				}
+			}
+
+			function checkOverlay() {
+				const statusDiv = document.getElementById("overlay-status");
+				const overlay = document.getElementById("cyber-chaukidaar-overlay");
+
+				if (overlay) {
+					statusDiv.innerHTML =
+						'<span class="pass">✓ Overlay found! Content script IS working.</span>';
+				} else {
+					statusDiv.innerHTML =
+						'<span class="fail">✗ No overlay found. Content script NOT working.</span>';
+				}
+			}
+
+			// Auto-test on load
+			setTimeout(() => {
+				testExtension();
+			}, 500);
+		</script>
+	</body>
+</html>

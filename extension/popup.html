@@ -1,487 +1,369 @@
 <!doctype html>
 <html>
-<head>
-  <meta charset="UTF-8" />
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      width: 450px;
-      min-height: 600px;
-      background: #000;
-      color: #33ff00;
-      font-family: 'JetBrains Mono', 'Courier New', monospace;
-      padding: 0;
-    }
-
-    .header {
-      background: #000;
-      border-bottom: 2px solid #33ff00;
-      padding: 15px;
-      text-align: center;
-    }
-
-    .logo {
-      font-size: 20px;
-      font-weight: bold;
-      text-shadow: 0 0 10px #33ff00;
-      margin-bottom: 5px;
-    }
-
-    .subtitle {
-      font-size: 11px;
-      color: #666;
-    }
-
-    .tabs {
-      display: flex;
-      border-bottom: 2px solid #33ff00;
-    }
-
-    .tab {
-      flex: 1;
-      padding: 12px;
-      text-align: center;
-      background: #000;
-      border: none;
-      color: #666;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 12px;
-      transition: all 0.2s;
-    }
-
-    .tab.active {
-      color: #33ff00;
-      background: rgba(51, 255, 0, 0.1);
-    }
-
-    .tab:hover {
-      color: #33ff00;
-    }
-
-    .tab-content {
-      display: none;
-      padding: 15px;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 15px;
-    }
-
-    .stat-card {
-      border: 1px solid #33ff00;
-      padding: 12px;
-      text-align: center;
-    }
-
-    .stat-value {
-      font-size: 24px;
-      font-weight: bold;
-      color: #33ff00;
-      text-shadow: 0 0 5px #33ff00;
-    }
-
-    .stat-label {
-      font-size: 10px;
-      color: #666;
-      margin-top: 5px;
-      text-transform: uppercase;
-    }
-
-    .current-site {
-      border: 2px solid #33ff00;
-      padding: 12px;
-      margin-bottom: 15px;
-    }
-
-    .site-status {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
-    }
-
-    .site-url {
-      font-size: 11px;
-      color: #666;
-      word-break: break-all;
-    }
-
-    .status-badge {
-      padding: 4px 8px;
-      font-size: 10px;
-      font-weight: bold;
-      border: 1px solid;
-    }
-
-    .status-safe {
-      color: #33ff00;
-      border-color: #33ff00;
-    }
-
-    .status-suspicious {
-      color: #ffaa00;
-      border-color: #ffaa00;
-    }
-
-    .status-dangerous {
-      color: #ff0000;
-      border-color: #ff0000;
-    }
-
-    .password-list {
-      max-height: 300px;
-      overflow-y: auto;
-    }
-
-    .password-item {
-      border: 1px solid #33ff00;
-      padding: 10px;
-      margin-bottom: 8px;
-    }
-
-    .password-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 5px;
-    }
-
-    .password-username {
-      font-weight: bold;
-      color: #33ff00;
-    }
-
-    .password-strength {
-      font-size: 10px;
-      padding: 2px 6px;
-      border: 1px solid;
-    }
-
-    .strength-strong {
-      color: #33ff00;
-      border-color: #33ff00;
-    }
-
-    .strength-medium {
-      color: #ffaa00;
-      border-color: #ffaa00;
-    }
-
-    .strength-weak {
-      color: #ff0000;
-      border-color: #ff0000;
-    }
-
-    .password-domain {
-      font-size: 10px;
-      color: #666;
-    }
-
-    .password-actions {
-      display: flex;
-      gap: 5px;
-      margin-top: 8px;
-    }
-
-    .btn {
-      padding: 6px 12px;
-      border: 1px solid #33ff00;
-      background: transparent;
-      color: #33ff00;
-      font-family: inherit;
-      font-size: 11px;
-      cursor: pointer;
-      flex: 1;
-    }
-
-    .btn:hover {
-      background: #33ff00;
-      color: #000;
-    }
-
-    .btn-danger {
-      border-color: #ff0000;
-      color: #ff0000;
-    }
-
-    .btn-danger:hover {
-      background: #ff0000;
-      color: #000;
-    }
-
-    .btn-primary {
-      background: #33ff00;
-      color: #000;
-      font-weight: bold;
-    }
-
-    .btn-primary:hover {
-      opacity: 0.8;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 40px 20px;
-      color: #666;
-    }
-
-    .sync-section {
-      border: 2px solid #33ff00;
-      padding: 12px;
-      margin-top: 15px;
-    }
-
-    .sync-info {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      font-size: 11px;
-    }
-
-    .last-sync {
-      color: #666;
-    }
-
-    ::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: #000;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: #33ff00;
-      border: 1px solid #000;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 20px;
-      color: #666;
-    }
-
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
-
-    .blink {
-      animation: blink 1s infinite;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div class="logo">🛡️ CYBER CHAUKIDAAR</div>
-    <div class="subtitle">Powered by OrderOfPhoenix</div>
-  </div>
-
-  <div class="tabs">
-    <button class="tab active" data-tab="dashboard">Dashboard</button>
-    <button class="tab" data-tab="passwords">Passwords</button>
-    <button class="tab" data-tab="settings">Settings</button>
-  </div>
-
-  <!-- Dashboard Tab -->
-  <div class="tab-content active" id="dashboard">
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-value" id="ads-blocked">0</div>
-        <div class="stat-label">Ads Blocked</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="trackers-blocked">0</div>
-        <div class="stat-label">Trackers Blocked</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="sites-scanned">0</div>
-        <div class="stat-label">Sites Scanned</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="passwords-saved">0</div>
-        <div class="stat-label">Passwords Saved</div>
-      </div>
-    </div>
-
-    <div class="current-site">
-      <div class="site-status">
-        <span style="font-weight: bold;">Current Site:</span>
-        <span class="status-badge status-safe" id="site-status">SAFE</span>
-      </div>
-      <div class="site-url" id="site-url">Loading...</div>
-    </div>
-
-    <div class="sync-section">
-      <div class="sync-info">
-        <span>USB Vault Sync:</span>
-        <span class="last-sync" id="last-sync">Never</span>
-      </div>
-      <button class="btn btn-primary" id="sync-btn">🔄 Sync with USB Vault</button>
-    </div>
-  </div>
-
-  <!-- Passwords Tab -->
-  <div class="tab-content" id="passwords">
-    <div class="password-list" id="password-list">
-      <div class="loading">
-        <div class="blink">Loading passwords...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Settings Tab -->
-  <div class="tab-content" id="settings">
-    <div style="padding: 20px; text-align: center; color: #666;">
-      <p style="margin-bottom: 15px;">Extension Settings</p>
-      <button class="btn btn-primary" id="open-dashboard">Open Web Dashboard</button>
-      <div style="margin-top: 20px; font-size: 10px;">
-        Version 1.0.0<br/>
-        © 2024 OrderOfPhoenix
-      </div>
-    </div>
-  </div>
-
-  <script src="popup.js"></script>
-</body>
-</html>
-
-			.status.warning {
-				border-color: #ffb000;
-				color: #ffb000;
+	<head>
+		<meta charset="UTF-8" />
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
 			}
 
-			.status.danger {
-				border-color: #ff3333;
-				color: #ff3333;
+			body {
+				width: 450px;
+				min-height: 600px;
+				background: #000;
+				color: #33ff00;
+				font-family: "JetBrains Mono", "Courier New", monospace;
+				padding: 0;
 			}
 
-			.stat-grid {
+			.header {
+				background: #000;
+				border-bottom: 2px solid #33ff00;
+				padding: 15px;
+				text-align: center;
+			}
+
+			.logo {
+				font-size: 20px;
+				font-weight: bold;
+				text-shadow: 0 0 10px #33ff00;
+				margin-bottom: 5px;
+			}
+
+			.subtitle {
+				font-size: 11px;
+				color: #666;
+			}
+
+			.tabs {
+				display: flex;
+				border-bottom: 2px solid #33ff00;
+			}
+
+			.tab {
+				flex: 1;
+				padding: 12px;
+				text-align: center;
+				background: #000;
+				border: none;
+				color: #666;
+				cursor: pointer;
+				font-family: inherit;
+				font-size: 12px;
+				transition: all 0.2s;
+			}
+
+			.tab.active {
+				color: #33ff00;
+				background: rgba(51, 255, 0, 0.1);
+			}
+
+			.tab:hover {
+				color: #33ff00;
+			}
+
+			.tab-content {
+				display: none;
+				padding: 15px;
+			}
+
+			.tab-content.active {
+				display: block;
+			}
+
+			.stats-grid {
 				display: grid;
 				grid-template-columns: 1fr 1fr;
-				gap: 8px;
-				margin-bottom: 16px;
+				gap: 10px;
+				margin-bottom: 15px;
 			}
 
-			.stat {
-				border: 1px solid #3A9B3A;
-				padding: 8px;
+			.stat-card {
+				border: 1px solid #33ff00;
+				padding: 12px;
 				text-align: center;
 			}
 
 			.stat-value {
-				font-size: 20px;
+				font-size: 24px;
 				font-weight: bold;
-				margin-bottom: 4px;
+				color: #33ff00;
+				text-shadow: 0 0 5px #33ff00;
 			}
 
 			.stat-label {
 				font-size: 10px;
-				color: #3A9B3A;
-			}
-
-			.button {
-				width: 100%;
-				background: transparent;
-				border: 1px solid #33ff00;
-				color: #33ff00;
-				padding: 10px;
-				cursor: pointer;
-				font-family: "Courier New", monospace;
-				font-size: 12px;
+				color: #666;
+				margin-top: 5px;
 				text-transform: uppercase;
+			}
+
+			.current-site {
+				border: 2px solid #33ff00;
+				padding: 12px;
+				margin-bottom: 15px;
+			}
+
+			.site-status {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
 				margin-bottom: 8px;
-				transition: all 0.1s;
 			}
 
-			.button:hover {
-				background: #33ff00;
-				color: #0a0a0a;
+			.site-url {
+				font-size: 11px;
+				color: #666;
+				word-break: break-all;
 			}
 
-			.button:before {
-				content: "[ ";
-			}
-
-			.button:after {
-				content: " ]";
-			}
-
-			.footer {
-				border-top: 1px solid #3A9B3A;
-				padding-top: 12px;
-				margin-top: 16px;
+			.status-badge {
+				padding: 4px 8px;
 				font-size: 10px;
-				color: #3A9B3A;
-				text-align: center;
+				font-weight: bold;
+				border: 1px solid;
 			}
 
-			.cursor {
-				display: inline-block;
-				width: 8px;
-				height: 14px;
+			.status-safe {
+				color: #33ff00;
+				border-color: #33ff00;
+			}
+
+			.status-suspicious {
+				color: #ffaa00;
+				border-color: #ffaa00;
+			}
+
+			.status-dangerous {
+				color: #ff0000;
+				border-color: #ff0000;
+			}
+
+			.password-list {
+				max-height: 300px;
+				overflow-y: auto;
+			}
+
+			.password-item {
+				border: 1px solid #33ff00;
+				padding: 10px;
+				margin-bottom: 8px;
+			}
+
+			.password-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 5px;
+			}
+
+			.password-username {
+				font-weight: bold;
+				color: #33ff00;
+			}
+
+			.password-strength {
+				font-size: 10px;
+				padding: 2px 6px;
+				border: 1px solid;
+			}
+
+			.strength-strong {
+				color: #33ff00;
+				border-color: #33ff00;
+			}
+
+			.strength-medium {
+				color: #ffaa00;
+				border-color: #ffaa00;
+			}
+
+			.strength-weak {
+				color: #ff0000;
+				border-color: #ff0000;
+			}
+
+			.password-domain {
+				font-size: 10px;
+				color: #666;
+			}
+
+			.password-actions {
+				display: flex;
+				gap: 5px;
+				margin-top: 8px;
+			}
+
+			.btn {
+				padding: 6px 12px;
+				border: 1px solid #33ff00;
+				background: transparent;
+				color: #33ff00;
+				font-family: inherit;
+				font-size: 11px;
+				cursor: pointer;
+				flex: 1;
+			}
+
+			.btn:hover {
 				background: #33ff00;
-				animation: blink 1s step-end infinite;
-				vertical-align: text-bottom;
+				color: #000;
+			}
+
+			.btn-danger {
+				border-color: #ff0000;
+				color: #ff0000;
+			}
+
+			.btn-danger:hover {
+				background: #ff0000;
+				color: #000;
+			}
+
+			.btn-primary {
+				background: #33ff00;
+				color: #000;
+				font-weight: bold;
+			}
+
+			.btn-primary:hover {
+				opacity: 0.8;
+			}
+
+			.empty-state {
+				text-align: center;
+				padding: 40px 20px;
+				color: #666;
+			}
+
+			.sync-section {
+				border: 2px solid #33ff00;
+				padding: 12px;
+				margin-top: 15px;
+			}
+
+			.sync-info {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 10px;
+				font-size: 11px;
+			}
+
+			.last-sync {
+				color: #666;
+			}
+
+			::-webkit-scrollbar {
+				width: 8px;
+			}
+
+			::-webkit-scrollbar-track {
+				background: #000;
+			}
+
+			::-webkit-scrollbar-thumb {
+				background: #33ff00;
+				border: 1px solid #000;
+			}
+
+			.loading {
+				text-align: center;
+				padding: 20px;
+				color: #666;
 			}
 
 			@keyframes blink {
 				0%,
-				50% {
+				100% {
 					opacity: 1;
 				}
-				51%,
-				100% {
-					opacity: 0;
+				50% {
+					opacity: 0.3;
 				}
+			}
+
+			.blink {
+				animation: blink 1s infinite;
 			}
 		</style>
 	</head>
 	<body>
 		<div class="header">
-			<div class="logo">🛡️ CYBERGUARD</div>
+			<div class="logo">🛡️ CYBER CHAUKIDAAR</div>
+			<div class="subtitle">Powered by OrderOfPhoenix</div>
 		</div>
 
-		<div id="site-status" class="status safe">
-			<div>
-				<div style="font-size: 14px; font-weight: bold">[SITE: SAFE]</div>
-				<div style="font-size: 10px; color: #3A9B3A" id="current-url">
-					Loading...
+		<div class="tabs">
+			<button class="tab active" data-tab="dashboard">Dashboard</button>
+			<button class="tab" data-tab="passwords">Passwords</button>
+			<button class="tab" data-tab="settings">Settings</button>
+		</div>
+
+		<!-- Dashboard Tab -->
+		<div class="tab-content active" id="dashboard">
+			<div class="stats-grid">
+				<div class="stat-card">
+					<div class="stat-value" id="ads-blocked">0</div>
+					<div class="stat-label">Ads Blocked</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-value" id="trackers-blocked">0</div>
+					<div class="stat-label">Trackers Blocked</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-value" id="sites-scanned">0</div>
+					<div class="stat-label">Sites Scanned</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-value" id="passwords-saved">0</div>
+					<div class="stat-label">Passwords Saved</div>
 				</div>
 			</div>
-			<div class="cursor"></div>
+
+			<div class="current-site">
+				<div class="site-status">
+					<span style="font-weight: bold">Current Site:</span>
+					<span class="status-badge status-safe" id="site-status">SAFE</span>
+				</div>
+				<div class="site-url" id="site-url">Loading...</div>
+			</div>
+
+			<div class="sync-section">
+				<div class="sync-info">
+					<span>USB Vault Sync:</span>
+					<span class="last-sync" id="last-sync">Never</span>
+				</div>
+				<button class="btn btn-primary" id="sync-btn">
+					🔄 Sync with USB Vault
+				</button>
+			</div>
 		</div>
 
-		<div class="stat-grid">
-			<div class="stat">
-				<div class="stat-value" id="threats-blocked">0</div>
-				<div class="stat-label">BLOCKED TODAY</div>
-			</div>
-			<div class="stat">
-				<div class="stat-value" id="hygiene-score">--</div>
-				<div class="stat-label">HYGIENE SCORE</div>
+		<!-- Passwords Tab -->
+		<div class="tab-content" id="passwords">
+			<div class="password-list" id="password-list">
+				<div class="loading">
+					<div class="blink">Loading passwords...</div>
+				</div>
 			</div>
 		</div>
 
-		<button class="button" id="scan-page">Scan This Page</button>
-		<button class="button" id="open-dashboard">Open Dashboard</button>
-		<button class="button" id="report-site">Report Suspicious Site</button>
-
-		<div class="footer">$ CYBERGUARD v1.0.0 | [ACTIVE]</div>
+		<!-- Settings Tab -->
+		<div class="tab-content" id="settings">
+			<div style="padding: 20px; text-align: center; color: #666">
+				<p style="margin-bottom: 15px">Extension Settings</p>
+				<button class="btn btn-primary" id="open-dashboard">
+					Open Web Dashboard
+				</button>
+				<div style="margin-top: 20px; font-size: 10px">
+					Version 1.0.0<br />
+					© 2024 OrderOfPhoenix
+				</div>
+			</div>
+		</div>
 
 		<script src="popup.js"></script>
 	</body>

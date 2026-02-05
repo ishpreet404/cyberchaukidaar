@@ -16,9 +16,11 @@ chrome://extensions/
 D:\hacktivate\extension
 ```
 
-### Step 2: Add Icon Placeholders (1 minute)
+### Step 2: Add Icon Placeholders (Optional - 1 minute)
 
-The extension needs icon files. Quick fix:
+The extension needs icon files, but **it works without them** (just no icon in toolbar).
+
+To add icons later:
 
 ```bash
 cd D:\hacktivate\extension\icons
@@ -33,11 +35,24 @@ copy your-image.png icon128.png
 # Browser will auto-scale them
 ```
 
-**Or skip icons for testing** - extension will still work, just no icon in toolbar.
+**You can skip this step for testing** - all features work without icons!
 
 ### Step 3: Test It! (1 minute)
 
-1. **Click extension icon** in Chrome toolbar
+**Option A: Use Test Page (Recommended)**
+```bash
+# Open the test page in your browser
+file:///D:/hacktivate/extension/test.html
+
+# Or just open extension/test.html in Chrome
+```
+
+This page tests all features automatically!
+
+**Option B: Manual Testing**
+
+1. **Click extension icon** in Chrome toolbar (if icons are added)
+   - Or go to `chrome://extensions/` → Click "service worker" under extension
    - Should see popup with Dashboard/Passwords/Settings tabs
    - Stats should show 0, 0, 0, 0
 
@@ -89,6 +104,84 @@ Extension scores every site 0-100 and shows overlay if suspicious.
 
 ## Troubleshooting
 
+### Extension Not Working At All?
+
+**FIRST: Follow Manual Test Guide**
+```bash
+# Open the testing guide
+extension/MANUAL_TEST.md
+
+# Follow Step 1-7 to diagnose issues
+```
+
+The manual test guide will help you:
+- Check if extension is properly loaded
+- Verify content script is running
+- Test each feature individually
+- Identify specific error messages
+- Get console logs for debugging
+
+**Quick Diagnostic (do this first):**
+
+1. **Reload extension and close ALL tabs:**
+   ```
+   chrome://extensions/ → Click reload (⟳) → Close all tabs → Open new tab
+   ```
+
+2. **Check if content script loads:**
+   ```
+   Open any website → Press F12 → Console tab
+   Look for: "Cyber Chaukidaar: Content script loaded"
+   ```
+
+3. **Check background worker:**
+   ```
+   chrome://extensions/ → "service worker" link → Check console
+   Should show: "Cyber Chaukidaar Extension Installed"
+   ```
+
+4. **Test on simple page:**
+   ```
+   Open: google.com
+   Wait 2 seconds
+   Look for green banner at top: "✓ CYBER CHAUKIDAAR: google.com is SAFE"
+   ```
+
+If any of these fail, see [extension/MANUAL_TEST.md](extension/MANUAL_TEST.md) for detailed fixes.
+
+**Common Fixes:**
+
+1. **Reload the extension:**
+   ```
+   chrome://extensions/
+   → Find "Cyber Chaukidaar"
+   → Click reload icon (circular arrow)
+   → Close all tabs and reopen
+   ```
+
+2. **Check for errors:**
+   ```
+   chrome://extensions/
+   → Find "Cyber Chaukidaar"
+   → Click "Errors" button (if red)
+   → Screenshot errors and check MANUAL_TEST.md
+   ```
+
+3. **Verify content script is running:**
+   - Open any website
+   - Press F12 (DevTools)
+   - Go to Console tab
+   - Look for: "Cyber Chaukidaar: Content script loaded"
+   - If missing: Extension not injecting properly
+
+4. **Check background service worker:**
+   ```
+   chrome://extensions/
+   → Find "Cyber Chaukidaar"
+   → Click "service worker" link
+   → Check console for errors
+   ```
+
 ### Can't load extension?
 - Make sure "Developer Mode" is ON
 - Check for red errors on extension card
@@ -105,9 +198,22 @@ Extension scores every site 0-100 and shows overlay if suspicious.
 - Check browser console for errors
 
 ### Password save not working?
-- Form must have username + password fields
-- Wait 1 second after clicking Submit
+- Form must have username (email/text) + password fields
+- Wait 0.5 seconds after clicking Submit
+- Check for browser confirmation dialog
 - Check popup → Passwords tab to verify
+- Open test page: `extension/test.html` for automated test
+
+### Password strength categories?
+- **WEAK**: Score < 35 (red)
+- **MEDIUM**: Score 35-59 (yellow/amber)
+- **STRONG**: Score 60+ (green)
+
+### Ads/Trackers not blocking?
+- Check `chrome://extensions/` → Make sure extension is enabled
+- Visit sites with ads (news sites, blogs)
+- Check Network tab in DevTools (F12) → Look for blocked requests
+- Open test page: `extension/test.html` to test blocking
 
 ## Next Steps
 
