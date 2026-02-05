@@ -8,9 +8,9 @@ export default {
 					bg: "#0a0a0a",
 					green: "#33ff00",
 					amber: "#ffb000",
-					muted: "#1f521f",
+					muted: "#3A9B3A",
 					red: "#ff3333",
-					border: "#1f521f",
+					border: "#3A9B3A",
 				},
 			},
 			fontFamily: {

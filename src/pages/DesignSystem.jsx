@@ -57,7 +57,7 @@ const DesignSystem = () => {
           <div className="text-center">
             <div className="w-full h-20 bg-terminal-muted mb-2"></div>
             <div className="text-xs">terminal-muted</div>
-            <div className="text-xs text-terminal-muted">#1f521f</div>
+            <div className="text-xs text-terminal-muted">#3A9B3A</div>
           </div>
         </div>
       </Card>
