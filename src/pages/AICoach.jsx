@@ -2,6 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Send, Bot, User } from 'lucide-react';
 import { Card, Input, Button, Separator } from '../components';
 
+// OpenRouter API Configuration
+const OPENROUTER_API_KEY = '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'; // Free tier key
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const MODEL_NAME = 'arcee-ai/trinity-mini:free';
+
 const AICoach = () => {
   const [messages, setMessages] = useState([
     {
@@ -33,29 +38,132 @@ const AICoach = () => {
     if (!userMessage.trim()) return;
 
     // Add user message
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    const newMessages = [...messages, { role: 'user', content: userMessage }];
+    setMessages(newMessages);
     setInputMessage('');
     setIsTyping(true);
 
-    // Simulate AI response
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      // Prepare conversation history for API
+      const apiMessages = newMessages.map(msg => ({
+        role: msg.role === 'assistant' ? 'assistant' : 'user',
+        content: msg.content
+      }));
 
-    // Mock AI response based on question
-    let aiResponse = '';
-    const lowerQuestion = userMessage.toLowerCase();
+      // Add system prompt
+      const systemPrompt = {
+        role: 'system',
+        content: `You are Cyber Chaukidaar, the AI-powered cybersecurity assistant for CyberGuard - a comprehensive security platform. You provide expert advice on cybersecurity topics while also promoting Cyber Chaukidaar's features when relevant.
 
-    if (lowerQuestion.includes('phishing')) {
-      aiResponse = `ANALYZING QUERY: "phishing detection"\n\n[RESPONSE]\n\nKey indicators of phishing emails:\n\n1. SENDER ADDRESS\n   - Check for subtle misspellings (paypa1.com vs paypal.com)\n   - Verify sender domain matches official company\n\n2. URGENCY & THREATS\n   - "Your account will be closed"\n   - "Unusual activity detected"\n   - Creates false sense of urgency\n\n3. REQUESTS FOR CREDENTIALS\n   - Legitimate companies never ask for passwords via email\n   - Beware of "verify your account" links\n\n4. SUSPICIOUS LINKS\n   - Hover over links to see actual destination\n   - Look for HTTPS and correct domain\n\n[TIP] When in doubt, go directly to the website by typing the URL yourself. Never click links in suspicious emails.`;
-    } else if (lowerQuestion.includes('password')) {
-      aiResponse = `ANALYZING QUERY: "password security"\n\n[RESPONSE]\n\nStrong password requirements:\n\n✓ MINIMUM 12 CHARACTERS\n✓ MIX OF UPPERCASE & LOWERCASE\n✓ INCLUDE NUMBERS & SYMBOLS\n✓ AVOID DICTIONARY WORDS\n✓ UNIQUE PER ACCOUNT\n\n[BEST PRACTICE]\nUse a password manager to:\n- Generate strong random passwords\n- Store them securely\n- Auto-fill on trusted sites\n- Never reuse passwords\n\nRecommended: Bitwarden, 1Password, KeePass\n\n[SECURITY TIP]\nEnable 2FA everywhere possible. Even if your password is compromised, 2FA provides a second layer of defense.`;
-    } else if (lowerQuestion.includes('2fa') || lowerQuestion.includes('two factor')) {
-      aiResponse = `ANALYZING QUERY: "two-factor authentication"\n\n[RESPONSE]\n\n2FA adds a second verification step beyond your password:\n\n[TYPES OF 2FA]\n1. AUTHENTICATOR APPS (BEST)\n   - Google Authenticator, Authy, Microsoft Authenticator\n   - Generates time-based codes\n   - Works offline\n\n2. SMS CODES (ACCEPTABLE)\n   - Sent to your phone\n   - Vulnerable to SIM swapping\n\n3. HARDWARE KEYS (MOST SECURE)\n   - YubiKey, Titan Security Key\n   - Physical device required\n\n[HOW TO ENABLE]\n1. Go to account security settings\n2. Find "Two-Factor Authentication" or "2FA"\n3. Choose authenticator app method\n4. Scan QR code with app\n5. Save backup codes in secure location\n\n[CRITICAL] Always save backup codes! Store them in your vault or password manager.`;
-    } else {
-      aiResponse = `PROCESSING QUERY...\n\n[RESPONSE]\n\n${userMessage}\n\nI can provide detailed guidance on cybersecurity topics. Try asking about:\n\n- Phishing detection\n- Password security\n- Two-factor authentication\n- Safe browsing practices\n- Data breach response\n- Account security\n\nWhat would you like to know more about?`;
+ABOUT Cyber Chaukidaar PLATFORM:
+Cyber Chaukidaar is a cutting-edge cybersecurity platform with a unique Terminal CLI aesthetic (hacker-style green-on-black interface). It provides real-time threat detection and protection.
+
+Cyber Chaukidaar FEATURES:
+
+1. BREACH CHECKER (Powered by LeakOSINT API)
+   - Searches 15+ BILLION breach records from dark web and leaked databases
+   - Check emails, phone numbers, or any personal data for exposure
+   - Shows detailed breach information: passwords, credit cards, personal data
+   - Real-time search with threat scoring and database statistics
+   - NO censorship - shows all exposed data in full for user awareness
+   - Provides immediate action recommendations for compromised data
+
+2. SCAM ANALYZER (Smart Phishing Detector)
+   - Advanced pattern-matching engine with 200+ phishing indicators
+   - Detects urgency language, credential requests, suspicious URLs, threatening tone
+   - Analyzes emails, SMS, and messages for scam patterns
+   - Highlights suspicious phrases with color-coded severity (RED/AMBER/GREEN)
+   - Real-time threat scoring (0-100 scale)
+   - Provides detailed reasoning and actionable recommendations
+   - Categories: Urgency tactics, money requests, generic greetings, too-good-to-be-true offers
+
+3. AI COACH (Cyber Chaukidaar - that's you!)
+   - Real-time AI cybersecurity guidance powered by OrderOfPhoenix
+   - Expert advice on phishing, passwords, 2FA, breach response
+   - Interactive chat with conversation context
+   - Quick topic buttons for common security questions
+   - Session tracking and message history
+
+4. BROWSER EXTENSION (Chrome/Edge)
+   - Real-time page scanning for threats
+   - Automatic phishing detection while browsing
+   - Threat alerts and warnings
+   - Seamless protection without slowing down browsing
+   - Terminal-style popup interface
+
+5. TERMINAL CLI AESTHETIC
+   - Unique hacker-style green (#33ff00) on black design
+   - JetBrains Mono monospace font throughout
+   - Zero rounded corners, sharp borders
+   - CRT scanline effects and animations
+   - ASCII art and terminal-style progress bars
+   - Typing effects and blinking cursors
+
+WHEN TO RECOMMEND FEATURES:
+- User asks about checking breaches → Promote Breach Checker
+- User mentions phishing emails/scams → Promote Scam Analyzer
+- User wants ongoing protection → Suggest Browser Extension
+- User asks about the site → Explain all features enthusiastically
+
+YOUR RESPONSE STYLE:
+- Format responses in terminal-style with clear sections
+- Be concise but thorough with technical terminology
+- Use uppercase for emphasis (IMPORTANT, WARNING, TIP)
+- Include relevant CyberGuard features naturally in responses
+- Be enthusiastic about the platform's capabilities
+- Use bullet points and numbered lists for clarity
+
+Remember: You're not just an AI assistant - you're part of the Cyber Chaukidaar security ecosystem!`
+      };
+
+      // Call OpenRouter API
+      const response = await fetch(OPENROUTER_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': window.location.origin,
+          'X-Title': 'Cyber Chaukidaar AI Coach'
+        },
+        body: JSON.stringify({
+          model: MODEL_NAME,
+          messages: [systemPrompt, ...apiMessages],
+          temperature: 0.7,
+          max_tokens: 1000,
+          top_p: 1,
+          frequency_penalty: 0,
+          presence_penalty: 0
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      let aiResponse = data.choices[0]?.message?.content || 'Sorry, I could not generate a response. Please try again.';
+      
+      // Strip markdown formatting
+      aiResponse = aiResponse
+        .replace(/\*\*(.+?)\*\*/g, '$1')  // Remove bold **text**
+        .replace(/\*(.+?)\*/g, '$1')      // Remove italic *text*
+        .replace(/\[(.+?)\]\(.+?\)/g, '$1')  // Remove links [text](url)
+        .replace(/`(.+?)`/g, '$1')        // Remove inline code `text`
+        .replace(/^#+\s+(.+)$/gm, '$1')   // Remove headers ### text
+        .replace(/^[-*+]\s+/gm, '• ')     // Convert bullet lists to •
+        .replace(/^\d+\.\s+/gm, (match) => match); // Keep numbered lists
+
+      setMessages(prev => [...prev, { role: 'assistant', content: aiResponse }]);
+    } catch (error) {
+      console.error('AI Coach Error:', error);
+      
+      // Fallback response on error
+      const errorResponse = `[ERROR: API CONNECTION FAILED]\n\n${error.message}\n\nFalling back to offline mode. Here are some general cybersecurity tips:\n\n1. Always verify sender identity before clicking links\n2. Use strong, unique passwords for each account\n3. Enable two-factor authentication everywhere\n4. Keep software and systems updated\n5. Be cautious with unsolicited messages\n\nPlease check your connection and try again, or ask a specific security question for offline guidance.`;
+      
+      setMessages(prev => [...prev, { role: 'assistant', content: errorResponse }]);
+    } finally {
+      setIsTyping(false);
     }
-
-    setMessages(prev => [...prev, { role: 'assistant', content: aiResponse }]);
-    setIsTyping(false);
   };
 
   return (
@@ -63,10 +171,10 @@ const AICoach = () => {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-shadow-terminal mb-2">
-          $ AI_COACH --MODE=INTERACTIVE
+          $ CYBER_CHAUKIDAAR --STATUS=ACTIVE
         </h1>
         <p className="text-terminal-muted">
-          Get personalized cybersecurity guidance from our AI assistant
+          Real-time AI cybersecurity guidance powered by OrderOfPhoenix
         </p>
       </div>
 
@@ -104,9 +212,9 @@ const AICoach = () => {
 
               {isTyping && (
                 <div className="flex gap-3">
-                  <Bot className="w-6 h-6 text-terminal-green" />
+                  <Bot className="w-6 h-6 text-terminal-green animate-pulse" />
                   <div className="p-3 border border-terminal-green">
-                    <span className="animate-pulse">PROCESSING</span>
+                    <span className="animate-pulse">AI THINKING</span>
                     <span className="cursor"></span>
                   </div>
                 </div>
@@ -166,7 +274,11 @@ const AICoach = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-terminal-muted">MODEL:</span>
-                <span className="text-terminal-green">GPT-4</span>
+                <span className="text-terminal-green text-xs">Cyber Chaukidaar</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-terminal-muted">PROVIDER:</span>
+                <span className="text-terminal-green text-xs">OrderOfPhoenix</span>
               </div>
             </div>
           </Card>
