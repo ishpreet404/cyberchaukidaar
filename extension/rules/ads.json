@@ -158,7 +158,61 @@
     "action": { "type": "block" },
     "condition": {
       "urlFilter": "*media.net*",
-      "resourceTypes": ["script", "xmlhttprequest", "image", "sub_frame"]
+      "resourceTypes": ["script", "xmlhttprequest", "image", "sub_frame", "stylesheet", "media", "font", "ping", "other"]
+    }
+  },
+  {
+    "id": 19,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "*googletagservices.com*",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "sub_frame", "stylesheet", "media", "font", "ping", "other"]
+    }
+  },
+  {
+    "id": 20,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "*g.doubleclick.net*",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "sub_frame", "stylesheet", "media", "font", "ping", "other"]
+    }
+  },
+  {
+    "id": 21,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "*doubleclick.com*",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "sub_frame", "stylesheet", "media", "font", "ping", "other"]
+    }
+  },
+  {
+    "id": 22,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "*adsystem.com*",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "sub_frame", "stylesheet", "media", "font", "ping", "other"]
+    }
+  },
+  {
+    "id": 23,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "*adservice.*",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "sub_frame", "stylesheet", "media", "font", "ping", "other"]
+    }
+  },
+  {
+    "id": 24,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "regexFilter": ".*(^|/)(ads?|adserver|adservice|adslot|banner|promotions?|sponsored)(/|$|\\?).*",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "sub_frame", "stylesheet", "media", "font", "ping", "other"]
     }
   }
 ]

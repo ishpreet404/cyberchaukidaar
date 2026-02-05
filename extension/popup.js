@@ -3,11 +3,14 @@
 	"use strict";
 
 	let statsRefreshInterval = null;
+	let masterUnlocked = false;
+	let masterHash = null;
 
 	document.addEventListener("DOMContentLoaded", async () => {
 		initializeTabs();
 		await loadCurrentSite();
 		await loadStats();
+		await loadMasterSettings();
 		await loadPasswords();
 		setupEventListeners();
 
@@ -41,6 +44,68 @@
 				}
 			});
 		});
+	}
+
+	async function loadMasterSettings() {
+		const result = await chrome.storage.local.get(["masterHash"]);
+		masterHash = result.masterHash || null;
+		updateMasterStatus();
+	}
+
+	function updateMasterStatus() {
+		const statusEl = document.getElementById("master-status");
+		if (!statusEl) return;
+		statusEl.textContent = masterHash
+			? "Status: Enabled (Master password required)"
+			: "Status: Not set";
+	}
+
+	async function sha256Base64(text) {
+		const data = new TextEncoder().encode(text);
+		const digest = await crypto.subtle.digest("SHA-256", data);
+		const bytes = new Uint8Array(digest);
+		let binary = "";
+		bytes.forEach((b) => (binary += String.fromCharCode(b)));
+		return btoa(binary);
+	}
+
+	async function setMasterPassword(password, confirm) {
+		if (!password || password.length < 6) {
+			alert("Master password must be at least 6 characters.");
+			return;
+		}
+		if (password !== confirm) {
+			alert("Passwords do not match.");
+			return;
+		}
+		const hash = await sha256Base64(password);
+		await chrome.storage.local.set({ masterHash: hash });
+		masterHash = hash;
+		masterUnlocked = false;
+		updateMasterStatus();
+		alert("Master password set.");
+	}
+
+	async function disableMasterPassword() {
+		await chrome.storage.local.set({ masterHash: null });
+		masterHash = null;
+		masterUnlocked = false;
+		updateMasterStatus();
+		alert("Master password disabled.");
+	}
+
+	async function unlockWithMasterPassword(password) {
+		if (!masterHash) {
+			alert("Master password is not set.");
+			return false;
+		}
+		const hash = await sha256Base64(password);
+		if (hash === masterHash) {
+			masterUnlocked = true;
+			return true;
+		}
+		alert("Incorrect master password.");
+		return false;
 	}
 
 	async function loadCurrentSite() {
@@ -117,7 +182,16 @@
 
 	async function loadPasswords() {
 		const listElement = document.getElementById("password-list");
+		const lockElement = document.getElementById("password-lock");
 		if (!listElement) return;
+
+		if (masterHash && !masterUnlocked) {
+			if (lockElement) lockElement.style.display = "block";
+			listElement.innerHTML =
+				'<div class="empty-state">Locked. Use master password to unlock.</div>';
+			return;
+		}
+		if (lockElement) lockElement.style.display = "none";
 
 		try {
 			const response = await chrome.runtime.sendMessage({
@@ -239,6 +313,33 @@
 		if (dashboardBtn) {
 			dashboardBtn.addEventListener("click", () => {
 				chrome.tabs.create({ url: "http://localhost:5173" });
+			});
+		}
+
+		const setBtn = document.getElementById("master-set");
+		if (setBtn) {
+			setBtn.addEventListener("click", async () => {
+				const password = document.getElementById("master-set-input").value;
+				const confirm = document.getElementById("master-confirm-input").value;
+				await setMasterPassword(password, confirm);
+			});
+		}
+
+		const disableBtn = document.getElementById("master-disable");
+		if (disableBtn) {
+			disableBtn.addEventListener("click", async () => {
+				await disableMasterPassword();
+			});
+		}
+
+		const unlockBtn = document.getElementById("master-unlock");
+		if (unlockBtn) {
+			unlockBtn.addEventListener("click", async () => {
+				const password = document.getElementById("master-unlock-input").value;
+				const ok = await unlockWithMasterPassword(password);
+				if (ok) {
+					await loadPasswords();
+				}
 			});
 		}
 	}

@@ -23,9 +23,136 @@ chrome.runtime.onInstalled.addListener(() => {
 	// Initialize filter lists
 	initializeFilterLists();
 
+	// Ensure dynamic blocking rules are applied
+	ensureDynamicBlockingRules();
+
 	// Set up webRequest listener for blocking stats
 	setupBlockingListeners();
 });
+
+chrome.runtime.onStartup.addListener(() => {
+	// Re-apply dynamic rules on browser start
+	ensureDynamicBlockingRules();
+});
+
+// Ensure dynamic blocking rules are active
+async function ensureDynamicBlockingRules() {
+	if (!chrome.declarativeNetRequest) {
+		return;
+	}
+
+	const adDomains = [
+		"doubleclick.net",
+		"googlesyndication.com",
+		"googleadservices.com",
+		"advertising.com",
+		"adnxs.com",
+		"adsrvr.org",
+		"criteo.com",
+		"outbrain.com",
+		"taboola.com",
+		"pubmatic.com",
+		"quantserve.com",
+		"revcontent.com",
+		"pagead2.googlesyndication.com",
+		"adservice.google",
+		"amazon-adsystem.com",
+		"media.net",
+		"googletagservices.com",
+		"googlesyndication.com",
+		"ads.yahoo.com",
+		"ads.twitter.com",
+		"ads.linkedin.com",
+		"ads.pubmatic.com",
+		"adsafeprotected.com",
+		"adform.net",
+		"adservice.google.com",
+		"doubleclick.com",
+		"g.doubleclick.net",
+		"adservice.google.co.in",
+		"adservice.google.co.uk",
+	];
+
+	const trackerDomains = [
+		"google-analytics.com",
+		"googletagmanager.com",
+		"facebook.net",
+		"connect.facebook.net",
+		"scorecardresearch.com",
+		"hotjar.com",
+		"mouseflow.com",
+		"fullstory.com",
+		"mixpanel.com",
+		"segment.com",
+		"amplitude.com",
+		"heap.io",
+		"intercom.io",
+		"clarity.ms",
+		"bat.bing.com",
+		"stats.g.doubleclick.net",
+		"analytics.google.com",
+		"api.segment.io",
+		"cdn.segment.com",
+	];
+
+	const resourceTypes = [
+		"script",
+		"xmlhttprequest",
+		"image",
+		"sub_frame",
+		"stylesheet",
+		"media",
+		"font",
+		"ping",
+		"other",
+	];
+
+	const baseId = 1000;
+	let id = baseId;
+	const rules = [];
+
+	adDomains.forEach((domain) => {
+		rules.push({
+			id: id++,
+			priority: 1,
+			action: { type: "block" },
+			condition: {
+				urlFilter: domain,
+				resourceTypes,
+			},
+		});
+	});
+
+	trackerDomains.forEach((domain) => {
+		rules.push({
+			id: id++,
+			priority: 1,
+			action: { type: "block" },
+			condition: {
+				urlFilter: domain,
+				resourceTypes,
+			},
+		});
+	});
+
+	try {
+		const existing = await chrome.declarativeNetRequest.getDynamicRules();
+		const removeIds = existing
+			.map((rule) => rule.id)
+			.filter((ruleId) => ruleId >= baseId && ruleId < baseId + 5000);
+
+		await chrome.declarativeNetRequest.updateDynamicRules({
+			removeRuleIds: removeIds,
+			addRules: rules,
+		});
+		console.log(
+			"Cyber Chaukidaar: Dynamic blocking rules applied",
+			rules.length,
+		);
+	} catch (error) {
+		console.error("Cyber Chaukidaar: Failed to apply dynamic rules", error);
+	}
+}
 
 // Setup webRequest listeners to track blocks
 function setupBlockingListeners() {
@@ -112,8 +239,12 @@ chrome.webNavigation.onCommitted.addListener(async (details) => {
 		// Main frame only
 		const url = new URL(details.url);
 
-		// Skip internal pages
-		if (url.protocol === "chrome:" || url.protocol === "chrome-extension:") {
+		// Skip internal pages and unsupported schemes
+		if (
+			url.protocol === "chrome:" ||
+			url.protocol === "chrome-extension:" ||
+			(url.protocol !== "http:" && url.protocol !== "https:")
+		) {
 			console.log("Cyber Chaukidaar: Skipping internal page:", url.href);
 			return;
 		}
@@ -127,21 +258,24 @@ chrome.webNavigation.onCommitted.addListener(async (details) => {
 		console.log("Cyber Chaukidaar: Safety check result:", safetyResult);
 
 		// Send to content script for overlay
-		chrome.tabs
-			.sendMessage(details.tabId, {
+		chrome.tabs.sendMessage(
+			details.tabId,
+			{
 				type: "SITE_SAFETY_CHECK",
 				result: safetyResult,
 				url: url.hostname,
-			})
-			.then(() => {
+			},
+			() => {
+				if (chrome.runtime.lastError) {
+					// No content script on this page (e.g., file:// or restricted pages)
+					return;
+				}
 				console.log(
 					"Cyber Chaukidaar: Safety result sent to tab",
 					details.tabId,
 				);
-			})
-			.catch((error) => {
-				console.error("Cyber Chaukidaar: Failed to send safety result:", error);
-			});
+			},
+		);
 	}
 });
 
@@ -255,10 +389,19 @@ async function checkSiteSafety(hostname, fullUrl) {
 		indicators.score -= 10;
 	}
 
-	// Check for HTTPS
-	if (fullUrl.startsWith("http://")) {
-		indicators.reasons.push("⚠️ No HTTPS encryption");
-		indicators.score -= 10;
+	// Check for HTTPS (block plain HTTP unless localhost)
+	let isHttp = false;
+	const localhostAllowlist = new Set(["localhost", "127.0.0.1", "::1"]);
+	if (fullUrl.startsWith("http://") && !localhostAllowlist.has(hostname)) {
+		isHttp = true;
+		indicators.suspicious = true;
+		indicators.reasons.push("🚫 Insecure HTTP (blocked)");
+		indicators.score -= 50;
+	} else if (
+		fullUrl.startsWith("http://") &&
+		localhostAllowlist.has(hostname)
+	) {
+		indicators.reasons.push("ℹ️ HTTP allowed for localhost");
 	}
 
 	// Check against local blacklist
@@ -289,7 +432,7 @@ async function checkSiteSafety(hostname, fullUrl) {
 
 	// Determine threat level
 	let threat = "SAFE";
-	if (indicators.score < 40) {
+	if (isHttp || indicators.score < 40) {
 		threat = "DANGEROUS";
 	} else if (indicators.score < 70) {
 		threat = "SUSPICIOUS";
@@ -301,6 +444,8 @@ async function checkSiteSafety(hostname, fullUrl) {
 		score: Math.max(0, indicators.score),
 		reasons: indicators.reasons,
 		hostname: hostname,
+		block: isHttp,
+		allowlist: localhostAllowlist.has(hostname),
 	};
 }
 

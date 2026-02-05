@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Shield, AlertTriangle, TrendingUp, Activity, Zap, Blocks, Eye } from 'lucide-react';
 import { Card, ProgressBar, Button, Separator, TypingText, ASCIIArt, StatusBadge } from '../components';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [hygieneScore, setHygieneScore] = useState(0);
   const [showWelcome, setShowWelcome] = useState(true);
   const [extensionStats, setExtensionStats] = useState({
@@ -13,13 +15,9 @@ const Dashboard = () => {
     lastSync: null
   });
   const [extensionConnected, setExtensionConnected] = useState(false);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
   useEffect(() => {
-    // Animate score on load
-    const timer = setTimeout(() => {
-      setHygieneScore(87);
-    }, 1000);
-    
     // Listen for extension stats updates
     const handleExtensionStats = (event) => {
       console.log('Extension stats received:', event.detail);
@@ -30,10 +28,32 @@ const Dashboard = () => {
     window.addEventListener('extensionStatsUpdate', handleExtensionStats);
     
     return () => {
-      clearTimeout(timer);
       window.removeEventListener('extensionStatsUpdate', handleExtensionStats);
     };
   }, []);
+
+  useEffect(() => {
+    // Compute hygiene score from extension stats
+    if (!extensionConnected) {
+      setHygieneScore(0);
+      return;
+    }
+
+    const { adsBlocked, trackersBlocked, sitesScanned, passwordsSaved } = extensionStats;
+
+    const adsScore = Math.min(20, Math.floor(adsBlocked / 10));
+    const trackersScore = Math.min(20, Math.floor(trackersBlocked / 10));
+    const sitesScore = Math.min(30, Math.floor(sitesScanned / 5));
+    const passwordsScore = Math.min(30, passwordsSaved * 6);
+
+    const base = adsScore + trackersScore + sitesScore + passwordsScore;
+    const total = Math.max(0, Math.min(100, base + 50));
+    setHygieneScore(total);
+  }, [extensionConnected, extensionStats]);
+
+  const passwordStrengthScore = Math.min(100, extensionStats.passwordsSaved * 20);
+  const safeBrowsingScore = Math.min(100, Math.floor(extensionStats.sitesScanned / 2));
+  const breachExposureScore = 100 - Math.min(100, Math.floor(extensionStats.trackersBlocked / 2));
 
   const recentThreats = [
     { id: 1, type: 'PHISHING', url: 'secure-login-verify.fake', status: 'blocked', time: '2m ago' },
@@ -163,7 +183,7 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
             <div className="border border-terminal-green p-3">
               <div className="text-xs text-terminal-muted mb-2">PASSWORD_STRENGTH</div>
-              <ProgressBar value={95} max={100} showPercentage={false} />
+              <ProgressBar value={passwordStrengthScore} max={100} showPercentage={false} />
             </div>
             <div className="border border-terminal-green p-3">
               <div className="text-xs text-terminal-muted mb-2">2FA_ENABLED</div>
@@ -171,20 +191,42 @@ const Dashboard = () => {
             </div>
             <div className="border border-terminal-green p-3">
               <div className="text-xs text-terminal-muted mb-2">BREACH_EXPOSURE</div>
-              <ProgressBar value={20} max={100} showPercentage={false} variant="warning" />
+              <ProgressBar value={breachExposureScore} max={100} showPercentage={false} variant="warning" />
             </div>
             <div className="border border-terminal-green p-3">
               <div className="text-xs text-terminal-muted mb-2">SAFE_BROWSING</div>
-              <ProgressBar value={88} max={100} showPercentage={false} />
+              <ProgressBar value={safeBrowsingScore} max={100} showPercentage={false} />
             </div>
           </div>
 
           <div className="flex gap-2 mt-4">
-            <Button>VIEW DETAILED REPORT</Button>
-            <Button variant="warning">IMPROVE SCORE</Button>
+            <Button onClick={() => navigate('/breach-checker')}>VIEW DETAILED REPORT</Button>
+            <Button
+              variant="warning"
+              onClick={() => {
+                if (!extensionConnected) setShowInstallPrompt(true);
+              }}
+            >
+              IMPROVE SCORE
+            </Button>
           </div>
         </div>
       </Card>
+
+      {showInstallPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+          <div className="border border-terminal-green bg-terminal-bg p-6 max-w-md w-full">
+            <div className="text-terminal-green font-bold mb-2">INSTALL EXTENSION</div>
+            <div className="text-terminal-muted text-sm mb-4">
+              Install the Cyber Chaukidaar browser extension to boost your hygiene score by 50 and enable real-time protection.
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={() => navigate('/setup')}>INSTALL NOW</Button>
+              <Button variant="warning" onClick={() => setShowInstallPrompt(false)}>CLOSE</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* System Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -229,19 +271,19 @@ const Dashboard = () => {
       {/* Quick Actions */}
       <Card title="▸ QUICK ACTIONS">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Button className="py-4">
+          <Button className="py-4" onClick={() => navigate('/vault')}>
             <div className="flex flex-col gap-2">
-              <span>SCAN URL</span>
-              <span className="text-xs text-terminal-muted">Check link safety</span>
+              <span>VAULT</span>
+              <span className="text-xs text-terminal-muted">Open USB Vault</span>
             </div>
           </Button>
-          <Button className="py-4">
+          <Button className="py-4" onClick={() => navigate('/breach-checker')}>
             <div className="flex flex-col gap-2">
               <span>BREACH CHECK</span>
               <span className="text-xs text-terminal-muted">Search exposures</span>
             </div>
           </Button>
-          <Button className="py-4">
+          <Button className="py-4" onClick={() => navigate('/ai-coach')}>
             <div className="flex flex-col gap-2">
               <span>AI COACH</span>
               <span className="text-xs text-terminal-muted">Get guidance</span>

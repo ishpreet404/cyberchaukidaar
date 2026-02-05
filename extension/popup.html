@@ -344,6 +344,38 @@
 
 		<!-- Passwords Tab -->
 		<div class="tab-content" id="passwords">
+			<div
+				id="password-lock"
+				style="
+					display: none;
+					border: 1px solid #33ff00;
+					padding: 12px;
+					margin-bottom: 10px;
+					text-align: center;
+				"
+			>
+				<div style="font-weight: bold; margin-bottom: 8px">
+					🔒 Master Password Required
+				</div>
+				<div style="font-size: 11px; color: #666; margin-bottom: 10px">
+					Enter master password to view saved passwords.
+				</div>
+				<input
+					id="master-unlock-input"
+					type="password"
+					placeholder="Master password"
+					style="
+						width: 100%;
+						margin-bottom: 8px;
+						padding: 6px;
+						background: #000;
+						color: #33ff00;
+						border: 1px solid #33ff00;
+						font-family: inherit;
+					"
+				/>
+				<button class="btn btn-primary" id="master-unlock">Unlock</button>
+			</div>
 			<div class="password-list" id="password-list">
 				<div class="loading">
 					<div class="blink">Loading passwords...</div>
@@ -355,6 +387,56 @@
 		<div class="tab-content" id="settings">
 			<div style="padding: 20px; text-align: center; color: #666">
 				<p style="margin-bottom: 15px">Extension Settings</p>
+				<div
+					style="
+						border: 1px solid #33ff00;
+						padding: 12px;
+						margin-bottom: 12px;
+						text-align: left;
+					"
+				>
+					<div style="font-weight: bold; color: #33ff00; margin-bottom: 6px">
+						Master Password
+					</div>
+					<div
+						id="master-status"
+						style="font-size: 11px; color: #666; margin-bottom: 8px"
+					>
+						Status: Not set
+					</div>
+					<input
+						id="master-set-input"
+						type="password"
+						placeholder="Set new master password"
+						style="
+							width: 100%;
+							margin-bottom: 6px;
+							padding: 6px;
+							background: #000;
+							color: #33ff00;
+							border: 1px solid #33ff00;
+							font-family: inherit;
+						"
+					/>
+					<input
+						id="master-confirm-input"
+						type="password"
+						placeholder="Confirm master password"
+						style="
+							width: 100%;
+							margin-bottom: 8px;
+							padding: 6px;
+							background: #000;
+							color: #33ff00;
+							border: 1px solid #33ff00;
+							font-family: inherit;
+						"
+					/>
+					<div style="display: flex; gap: 6px">
+						<button class="btn btn-primary" id="master-set">Set</button>
+						<button class="btn btn-danger" id="master-disable">Disable</button>
+					</div>
+				</div>
 				<button class="btn btn-primary" id="open-dashboard">
 					Open Web Dashboard
 				</button>

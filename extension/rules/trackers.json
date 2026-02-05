@@ -139,7 +139,70 @@
     },
     "condition": {
       "urlFilter": "*intercom.io/*",
-      "resourceTypes": ["script", "xmlhttprequest"]
+      "resourceTypes": ["script", "xmlhttprequest", "image", "sub_frame", "stylesheet", "media", "font", "ping", "other"]
+    }
+  },
+  {
+    "id": 113,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "*clarity.ms/*",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "sub_frame", "stylesheet", "media", "font", "ping", "other"]
+    }
+  },
+  {
+    "id": 114,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "*bat.bing.com/*",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "sub_frame", "stylesheet", "media", "font", "ping", "other"]
+    }
+  },
+  {
+    "id": 115,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "*stats.g.doubleclick.net/*",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "sub_frame", "stylesheet", "media", "font", "ping", "other"]
+    }
+  },
+  {
+    "id": 116,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "*analytics.google.com/*",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "sub_frame", "stylesheet", "media", "font", "ping", "other"]
+    }
+  },
+  {
+    "id": 117,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "*api.segment.io/*",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "sub_frame", "stylesheet", "media", "font", "ping", "other"]
+    }
+  },
+  {
+    "id": 118,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "*cdn.segment.com/*",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "sub_frame", "stylesheet", "media", "font", "ping", "other"]
+    }
+  },
+  {
+    "id": 119,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "regexFilter": ".*(^|/)(track|tracker|tracking|analytics|telemetry|pixel)(/|$|\\?).*",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "sub_frame", "stylesheet", "media", "font", "ping", "other"]
     }
   }
 ]

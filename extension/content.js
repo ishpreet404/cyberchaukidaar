@@ -163,8 +163,8 @@
             </ul>
           </div>
           
-          <div style="display: flex; gap: 10px; justify-content: center;">
-            <button id="cyber-go-back" style="
+			<div style="display: flex; gap: 10px; justify-content: center;">
+				<button id="cyber-go-back" style="
               background: #33ff00;
               color: #000;
               border: none;
@@ -175,19 +175,60 @@
               cursor: pointer;
               text-transform: uppercase;
             ">← Go Back (Recommended)</button>
-            
-            <button id="cyber-proceed" style="
-              background: transparent;
-              color: #33ff00;
-              border: 2px solid #33ff00;
-              padding: 12px 24px;
-              font-family: 'JetBrains Mono', monospace;
-              font-weight: bold;
-              font-size: 14px;
-              cursor: pointer;
-              text-transform: uppercase;
-            ">Proceed Anyway →</button>
+
+				${
+					safetyResult.block
+						? `
+				<button id="cyber-advanced" style="
+					background: transparent;
+					color: #33ff00;
+					border: 2px dashed #33ff00;
+					padding: 12px 24px;
+					font-family: 'JetBrains Mono', monospace;
+					font-weight: bold;
+					font-size: 14px;
+					cursor: pointer;
+					text-transform: uppercase;
+				">Advanced Options ▸</button>
+				`
+						: `
+				<button id="cyber-proceed" style="
+					background: transparent;
+					color: #33ff00;
+					border: 2px solid #33ff00;
+					padding: 12px 24px;
+					font-family: 'JetBrains Mono', monospace;
+					font-weight: bold;
+					font-size: 14px;
+					cursor: pointer;
+					text-transform: uppercase;
+				">Proceed Anyway →</button>
+				`
+				}
           </div>
+
+			${
+				safetyResult.block
+					? `
+			<div style=\"margin-top: 12px; text-align: center; color: #fff; font-size: 12px;\">
+				HTTP is blocked. If this site supports HTTPS, use <strong>https://</strong> instead.
+			</div>
+			<div id=\"cyber-advanced-panel\" style=\"margin-top: 12px; display: none; text-align: center;\">
+				<button id=\"cyber-proceed\" style=\"
+					background: transparent;
+					color: #ffaa00;
+					border: 2px solid #ffaa00;
+					padding: 10px 18px;
+					font-family: 'JetBrains Mono', monospace;
+					font-weight: bold;
+					font-size: 12px;
+					cursor: pointer;
+					text-transform: uppercase;
+				\">Continue on HTTP (Not Recommended)</button>
+			</div>
+			`
+					: ""
+			}
           
           <div style="color: #666; font-size: 11px; text-align: center; margin-top: 15px;">
             Powered by OrderOfPhoenix
@@ -203,10 +244,28 @@
 			window.history.back();
 		});
 
-		document.getElementById("cyber-proceed").addEventListener("click", () => {
-			safetyOverlay.remove();
-			safetyOverlay = null;
-		});
+		const advancedBtn = document.getElementById("cyber-advanced");
+		if (advancedBtn) {
+			advancedBtn.addEventListener("click", () => {
+				const panel = document.getElementById("cyber-advanced-panel");
+				if (panel) {
+					panel.style.display =
+						panel.style.display === "none" ? "block" : "none";
+					advancedBtn.textContent =
+						panel.style.display === "none"
+							? "Advanced Options ▸"
+							: "Advanced Options ▾";
+				}
+			});
+		}
+
+		const proceedBtn = document.getElementById("cyber-proceed");
+		if (proceedBtn) {
+			proceedBtn.addEventListener("click", () => {
+				safetyOverlay.remove();
+				safetyOverlay = null;
+			});
+		}
 	}
 
 	// Monitor password fields and login forms
