@@ -34,7 +34,9 @@ const Navigation = () => {
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 hover:animate-glitch">
               <Shield className="w-6 h-6" />
-              <span className="text-xl font-bold text-shadow-terminal">CYBERGUARD</span>
+                          <span className="text-xl font-bold text-shadow-terminal">
+                              Cyber Chaukidaar
+              </span>
             </Link>
 
             {/* Navigation Links */}

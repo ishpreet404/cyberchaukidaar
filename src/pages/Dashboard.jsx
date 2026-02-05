@@ -40,7 +40,7 @@ const Dashboard = () => {
         <Card className="bg-terminal-bg">
           <div className="space-y-2">
             <div className="text-terminal-green">
-              <span className="text-terminal-green">root@cyberguard:~$ </span>
+              <span className="text-terminal-green">root@CyberChaukidaar:~$ </span>
               <TypingText 
                 text="INITIALIZING SECURITY PROTOCOL..."
                 speed={30}
