@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import ScamAnalyzer from './pages/ScamAnalyzer';
 import BreachChecker from './pages/BreachChecker';
 import AICoach from './pages/AICoach';
+import USBVault from './pages/USBVault';
 import './index.css';
 
 function App() {
@@ -16,7 +17,7 @@ function App() {
           <Route path="scam-analyzer" element={<ScamAnalyzer />} />
           <Route path="breach-checker" element={<BreachChecker />} />
           <Route path="ai-coach" element={<AICoach />} />
-          <Route path="vault" element={<ComingSoon title="VAULT" />} />
+          <Route path="vault" element={<USBVault />} />
           <Route path="activity" element={<ComingSoon title="ACTIVITY" />} />
         </Route>
       </Routes>
