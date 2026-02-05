@@ -7,7 +7,7 @@ import {
   Database, 
   MessageSquare, 
   Key,
-  Activity,
+  Blocks,
   Menu,
   X
 } from 'lucide-react';
@@ -22,7 +22,7 @@ const Navigation = () => {
     { path: '/breach-checker', label: 'BREACH CHECK', icon: Database },
     { path: '/ai-coach', label: 'AI COACH', icon: MessageSquare },
     { path: '/vault', label: 'VAULT', icon: Key },
-    { path: '/activity', label: 'ACTIVITY', icon: Activity },
+    { path: '/advanced', label: 'ADVANCED', icon: Blocks },
   ];
 
   return (

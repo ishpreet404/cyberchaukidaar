@@ -6,6 +6,7 @@ import ScamAnalyzer from './pages/ScamAnalyzer';
 import BreachChecker from './pages/BreachChecker';
 import AICoach from './pages/AICoach';
 import USBVault from './pages/USBVault';
+import Advanced from './pages/Advanced';
 import './index.css';
 
 function App() {
@@ -18,27 +19,11 @@ function App() {
           <Route path="breach-checker" element={<BreachChecker />} />
           <Route path="ai-coach" element={<AICoach />} />
           <Route path="vault" element={<USBVault />} />
-          <Route path="activity" element={<ComingSoon title="ACTIVITY" />} />
+          <Route path="advanced" element={<Advanced />} />
         </Route>
       </Routes>
     </Router>
   );
 }
-
-const ComingSoon = ({ title }) => (
-  <div className="flex items-center justify-center min-h-[60vh]">
-    <div className="text-center space-y-4">
-      <div className="text-4xl font-bold text-shadow-terminal">
-        $ {title}
-      </div>
-      <div className="text-terminal-muted">
-        [FEATURE IN DEVELOPMENT]
-      </div>
-      <div className="animate-pulse text-terminal-green">
-        <span className="cursor"></span>
-      </div>
-    </div>
-  </div>
-);
 
 export default App;
