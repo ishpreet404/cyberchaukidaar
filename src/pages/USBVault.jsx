@@ -321,7 +321,7 @@ const USBVault = () => {
         deviceId: generateDeviceId(),
         recoveryHash: recoveryHash,
         extensionPasswords: storedPasswords,
-        userNotes: ''
+        userNotes: userNotes
       };
 
       setRecoveryPhrase(newRecoveryPhrase);
@@ -806,6 +806,17 @@ const USBVault = () => {
               </div>
             </div>
 
+            {/* Initial Notes */}
+            <div className="space-y-2">
+              <label className="text-sm text-terminal-muted">PERSONAL NOTES (OPTIONAL):</label>
+              <textarea
+                value={userNotes}
+                onChange={(e) => setUserNotes(e.target.value)}
+                className="w-full h-24 bg-black border border-terminal-green text-terminal-green p-3 font-mono text-sm focus:outline-none focus:border-terminal-green resize-none"
+                placeholder="Add any notes about this vault..."
+              />
+            </div>
+
             <Button 
               onClick={createVault} 
               disabled={processing}
@@ -1052,7 +1063,15 @@ const USBVault = () => {
                   </>
                 ) : (
                   <>
-                    <Button onClick={() => setIsEditingVault(true)} variant="primary" className="flex-1">
+                    <Button onClick={() => {
+                      // Fetch fresh passwords when entering edit mode
+                      const freshPasswords = getStoredPasswords();
+                      setVaultData({
+                        ...vaultData,
+                        extensionPasswords: freshPasswords
+                      });
+                      setIsEditingVault(true);
+                    }} variant="primary" className="flex-1">
                       <Download className="w-4 h-4 mr-2" />
                       UPDATE VAULT
                     </Button>
