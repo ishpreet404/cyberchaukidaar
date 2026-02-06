@@ -25,6 +25,10 @@
 		} else if (request.type === "USB_SYNC_REQUEST") {
 			handleUSBSyncRequest(request).then(sendResponse);
 			return true; // Async
+		} else if (request.type === "TRIGGER_UPDATE_VAULT") {
+			// Dispatch event to trigger update vault in React app
+			window.dispatchEvent(new CustomEvent("triggerVaultUpdate"));
+			sendResponse({ success: true });
 		} else if (request.type === "REQUEST_USB_SYNC") {
 			handleUSBSyncFromExtension(request).then(sendResponse);
 			return true;

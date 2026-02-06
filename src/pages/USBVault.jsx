@@ -16,6 +16,7 @@ const USBVault = () => {
   const [showRecoveryMode, setShowRecoveryMode] = useState(false);
   const [userNotes, setUserNotes] = useState('');
   const [isEditingVault, setIsEditingVault] = useState(false);
+  const [triggerUpdate, setTriggerUpdate] = useState(false);
 
   // Domain whitelist - only these domains can decrypt
   const ALLOWED_DOMAINS = ['localhost', 'cyberchaukidaar.com'];
@@ -93,7 +94,24 @@ const USBVault = () => {
     checkBrowserSupport();
     checkDomainValidity();
     checkVaultStatus();
-  }, []);
+
+    // Listen for trigger from extension
+    const handleTriggerUpdate = () => {
+      if (!isLocked && vaultData) {
+        // Set flag to trigger update
+        setTriggerUpdate(true);
+      } else if (isLocked) {
+        setError('⚠️ Please unlock the vault first before updating.');
+        setTimeout(() => setError(''), 3000);
+      } else {
+        setError('⚠️ No vault loaded. Create a vault first.');
+        setTimeout(() => setError(''), 3000);
+      }
+    };
+
+    window.addEventListener('triggerVaultUpdate', handleTriggerUpdate);
+    return () => window.removeEventListener('triggerVaultUpdate', handleTriggerUpdate);
+  }, [isLocked, vaultData]);
 
   // Fetch passwords from extension on-demand
   const fetchExtensionPasswords = async () => {
@@ -447,6 +465,14 @@ const USBVault = () => {
       setProcessing(false);
     }
   };
+
+  // Auto-trigger update vault when extension requests it
+  useEffect(() => {
+    if (triggerUpdate && !isLocked && vaultData) {
+      setTriggerUpdate(false); // Reset flag
+      updateVault();
+    }
+  }, [triggerUpdate, isLocked, vaultData]);
 
   // Load and verify vault from USB
   const loadVault = async () => {

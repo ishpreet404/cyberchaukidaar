@@ -9,6 +9,9 @@ let stats = {
 	lastSync: null,
 };
 
+// Store current site safety status for different tabs
+let currentSiteStatus = new Map(); // tabId -> safetyResult
+
 // Initialize extension
 chrome.runtime.onInstalled.addListener(() => {
 	console.log("Cyber Chaukidaar Extension Installed");
@@ -257,6 +260,9 @@ chrome.webNavigation.onCommitted.addListener(async (details) => {
 		const safetyResult = await checkSiteSafety(url.hostname, url.href);
 		console.log("Cyber Chaukidaar: Safety check result:", safetyResult);
 
+		// Store the safety result for this tab
+		currentSiteStatus.set(details.tabId, safetyResult);
+
 		// Send to content script for overlay
 		chrome.tabs.sendMessage(
 			details.tabId,
@@ -277,6 +283,11 @@ chrome.webNavigation.onCommitted.addListener(async (details) => {
 			},
 		);
 	}
+});
+
+// Clean up safety status when tabs are closed
+chrome.tabs.onRemoved.addListener((tabId) => {
+	currentSiteStatus.delete(tabId);
 });
 
 // Comprehensive site safety checker
@@ -607,6 +618,52 @@ function calculatePasswordStrength(password) {
 	};
 }
 
+// Trigger vault update from extension
+async function triggerVaultUpdate() {
+	try {
+		// Find existing vault tab
+		const tabs = await chrome.tabs.query({});
+		let vaultTab = tabs.find(
+			(tab) =>
+				tab.url &&
+				(tab.url.includes("localhost") || tab.url.includes("cyberchaukidaar")) &&
+				tab.url.includes("/vault"),
+		);
+
+		// If vault tab doesn't exist, create it
+		if (!vaultTab) {
+			vaultTab = await chrome.tabs.create({
+				url: "http://localhost:5173/vault",
+				active: true,
+			});
+
+			// Wait for tab to load and React to mount before sending message
+			await new Promise((resolve) => setTimeout(resolve, 3000));
+		} else {
+			// Activate existing tab and give it a moment to become active
+			await chrome.tabs.update(vaultTab.id, { active: true });
+			await new Promise((resolve) => setTimeout(resolve, 500));
+		}
+
+		// Send message to trigger update vault
+		try {
+			await chrome.tabs.sendMessage(vaultTab.id, {
+				type: "TRIGGER_UPDATE_VAULT",
+			});
+		} catch (e) {
+			// Tab might still be loading, that's okay
+			console.log("Message will be processed when vault loads");
+		}
+
+		return {
+			success: true,
+			message: "Vault page opened. Use UPDATE VAULT button with USB connected.",
+		};
+	} catch (error) {
+		return { success: false, error: error.message };
+	}
+}
+
 // USB Vault sync functionality
 async function syncWithUSB() {
 	try {
@@ -739,6 +796,11 @@ function broadcastStats() {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	if (request.type === "GET_STATS") {
 		sendResponse({ stats: stats });
+	} else if (request.type === "GET_SITE_SAFETY") {
+		// Get safety status for the specified tab
+		const tabId = request.tabId;
+		const safetyResult = currentSiteStatus.get(tabId);
+		sendResponse({ status: safetyResult || null });
 	} else if (request.type === "SAVE_PASSWORD") {
 		savePassword(request.data).then((success) => {
 			sendResponse({ success });
@@ -756,6 +818,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		return true;
 	} else if (request.type === "SYNC_WITH_USB") {
 		syncWithUSB().then((result) => {
+			sendResponse(result);
+		});
+		return true;
+	} else if (request.type === "TRIGGER_VAULT_UPDATE") {
+		triggerVaultUpdate().then((result) => {
 			sendResponse(result);
 		});
 		return true;
