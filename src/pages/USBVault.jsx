@@ -18,7 +18,7 @@ const USBVault = () => {
   const [isEditingVault, setIsEditingVault] = useState(false);
 
   // Domain whitelist - only these domains can decrypt
-  const ALLOWED_DOMAINS = ['localhost', 'cyberguard.app', 'cyberchaukidaar.com'];
+  const ALLOWED_DOMAINS = ['localhost', 'cyberchaukidaar.com'];
 
   // Word list for recovery phrases (BIP39 subset)
   const RECOVERY_WORDS = [
@@ -90,56 +90,35 @@ const USBVault = () => {
   };
 
   useEffect(() => {
-    // Setup extension sync listeners
-    const handleExtensionSync = async (event) => {
-      console.log('Extension sync request received:', event.detail);
-      
-      if (event.detail && event.detail.passwords) {
-        // Merge extension passwords with vault
-        if (!isLocked && vaultData) {
-          const updatedVault = {
-            ...vaultData,
-            extensionPasswords: event.detail.passwords,
-            lastModified: new Date().toISOString()
-          };
-          setVaultData(updatedVault);
-          
-          // Auto-save to vault file if we have a stored file handle
-          try {
-            await autoSaveVault(updatedVault);
-            setSuccess('✓ Synced with extension & saved to vault');
-          } catch (err) {
-            console.log('Auto-save skipped:', err.message);
-            setSuccess('✓ Synced with extension (save vault to persist)');
-          }
-          
-          setTimeout(() => setSuccess(''), 3000);
-        }
+    checkBrowserSupport();
+    checkDomainValidity();
+    checkVaultStatus();
+  }, []);
+
+  // Fetch passwords from extension on-demand
+  const fetchExtensionPasswords = async () => {
+    return new Promise((resolve) => {
+      try {
+        // Dispatch event to content script to get passwords from extension
+        const handler = (event) => {
+          window.removeEventListener('extensionPasswordsResponse', handler);
+          resolve(event.detail.passwords || {});
+        };
+        
+        window.addEventListener('extensionPasswordsResponse', handler);
+        window.dispatchEvent(new CustomEvent('getExtensionPasswords'));
+        
+        // Timeout after 2 seconds
+        setTimeout(() => {
+          window.removeEventListener('extensionPasswordsResponse', handler);
+          resolve({});
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to fetch extension passwords:', err);
+        resolve({});
       }
-    };
-    
-    const handleSyncRequest = () => {
-      console.log('USB sync request from extension');
-      
-      // Send current vault passwords to extension
-      if (!isLocked && vaultData) {
-        window.dispatchEvent(new CustomEvent('usbSyncResponse', {
-          detail: {
-            passwords: vaultData.extensionPasswords || [],
-            timestamp: Date.now()
-          }
-        }));
-      }
-    };
-    
-    window.addEventListener('usbSyncFromExtension', handleExtensionSync);
-    window.addEventListener('usbSyncRequest', handleSyncRequest);
-    
-    return () => {
-      window.removeEventListener('usbSyncFromExtension', handleExtensionSync);
-      window.removeEventListener('usbSyncRequest', handleSyncRequest);
-    };
-  }, [isLocked, vaultData]);
+    });
+  };
 
   // Check if File System Access API is supported
   const checkBrowserSupport = () => {
@@ -195,28 +174,7 @@ const USBVault = () => {
     return deviceId;
   };
 
-  // Get stored passwords from extension
-  const getStoredPasswords = () => {
-    try {
-      const stored = localStorage.getItem('cyberguard_passwords');
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    } catch (err) {
-      console.error('Error reading stored passwords:', err);
-    }
-    return [];
-  };
 
-  // Auto-save vault to previously used file handle
-  const autoSaveVault = async (updatedVaultData) => {
-    // Get stored file handle from IndexedDB or create new one
-    const vaultInfo = JSON.parse(localStorage.getItem('cyberguard_vault_info') || '{}');
-    
-    // For security, we can't persist file handles, so we'll skip auto-save
-    // User must manually update vault when they want to persist changes
-    throw new Error('Auto-save not available - use UPDATE VAULT button');
-  };
 
   // Generate checksum for integrity verification
   const generateChecksum = async (data) => {
@@ -365,8 +323,8 @@ const USBVault = () => {
       // Generate unique vault ID
       const vaultId = 'VAULT-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9).toUpperCase();
 
-      // Get passwords from previously synced data (if any)
-      const storedPasswords = vaultData?.extensionPasswords || {};
+      // Fetch passwords from extension
+      const extensionPasswords = await fetchExtensionPasswords();
 
       // Create vault data
       const vaultData = {
@@ -376,7 +334,7 @@ const USBVault = () => {
         lastModified: new Date().toISOString(),
         deviceId: generateDeviceId(),
         recoveryHash: recoveryHash,
-        extensionPasswords: storedPasswords,
+        extensionPasswords: extensionPasswords,
         userNotes: userNotes
       };
 
@@ -390,7 +348,7 @@ const USBVault = () => {
       const handle = await window.showSaveFilePicker({
         suggestedName: 'cyberguard-vault.key',
         types: [{
-          description: 'CyberGuard USB Vault (Store on USB Only)',
+          description: 'Cyber Chaukidaar USB Vault (Store on USB Only)',
           accept: { 'application/octet-stream': ['.key'] }
         }],
         excludeAcceptAllOption: true,
@@ -442,13 +400,15 @@ const USBVault = () => {
         throw new Error('File System Access API not supported');
       }
 
+      // Fetch latest passwords from extension
+      const extensionPasswords = await fetchExtensionPasswords();
+
       // Update vault data - exclude _integrity as it will be regenerated during encryption
-      // Use existing extensionPasswords from vaultData (already synced via event)
       const { _integrity, ...coreVaultData } = vaultData;
       const updatedVaultData = {
         ...coreVaultData,
         lastModified: new Date().toISOString(),
-        extensionPasswords: vaultData.extensionPasswords || {},
+        extensionPasswords: extensionPasswords,
         userNotes: userNotes
       };
 
@@ -459,7 +419,7 @@ const USBVault = () => {
       const handle = await window.showSaveFilePicker({
         suggestedName: 'cyberguard-vault.key',
         types: [{
-          description: 'CyberGuard USB Vault (Store on USB Only)',
+          description: 'Cyber Chaukidaar USB Vault (Store on USB Only)',
           accept: { 'application/octet-stream': ['.key'] }
         }],
         excludeAcceptAllOption: true,
@@ -502,7 +462,7 @@ const USBVault = () => {
       // Show file picker with USB hint
       const [handle] = await window.showOpenFilePicker({
         types: [{
-          description: 'CyberGuard USB Vault Key',
+          description: 'Cyber Chaukidaar USB Vault Key',
           accept: { 'application/octet-stream': ['.key'] }
         }],
         excludeAcceptAllOption: true,
@@ -1047,7 +1007,7 @@ const USBVault = () => {
               <div className="space-y-2">
                 <div className="text-sm text-terminal-muted mb-3">STORED PASSWORDS FROM EXTENSION:</div>
                 <div className="text-xs text-terminal-green bg-black border border-terminal-green/30 p-2 mb-3">
-                  \u229a AUTO-SYNC ENABLED: Passwords saved in extension automatically sync here. Click UPDATE VAULT to persist to USB.
+                  ⓘ Passwords stored in extension. Click UPDATE VAULT to fetch latest and save to USB.
                 </div>
                 {vaultData.extensionPasswords && Object.keys(vaultData.extensionPasswords).length > 0 ? (
                   Object.entries(vaultData.extensionPasswords).flatMap(([domain, passwords]) => 

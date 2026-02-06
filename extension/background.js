@@ -615,15 +615,14 @@ async function syncWithUSB() {
 
 		// Find Cyber Chaukidaar tabs
 		const tabs = await chrome.tabs.query({});
-		const cyberguardTabs = tabs.filter(
+		const cyberChaukidaarTabs = tabs.filter(
 			(tab) =>
 				tab.url &&
 				(tab.url.includes("localhost") ||
-					tab.url.includes("cyberguard") ||
 					tab.url.includes("cyberchaukidaar")),
 		);
 
-		if (cyberguardTabs.length === 0) {
+		if (cyberChaukidaarTabs.length === 0) {
 			return {
 				success: false,
 				error: "Open Cyber Chaukidaar website to sync with USB Vault",
@@ -631,7 +630,7 @@ async function syncWithUSB() {
 		}
 
 		// Request sync from website
-		const response = await chrome.tabs.sendMessage(cyberguardTabs[0].id, {
+		const response = await chrome.tabs.sendMessage(cyberChaukidaarTabs[0].id, {
 			type: "USB_SYNC_REQUEST",
 			passwords: extensionPasswords,
 			stats: stats,
@@ -743,14 +742,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	} else if (request.type === "SAVE_PASSWORD") {
 		savePassword(request.data).then((success) => {
 			sendResponse({ success });
-			// Auto-sync with USB vault after saving password
-			syncWithUSB().then((result) => {
-				if (result.success) {
-					console.log('\u2713 Auto-synced password with USB vault');
-				}
-			}).catch(() => {
-				// Silently ignore if vault is not open
-			});
 		});
 		return true; // Async
 	} else if (request.type === "GET_PASSWORDS") {

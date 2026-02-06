@@ -11,7 +11,7 @@ const AICoach = () => {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: 'CYBERGUARD AI COACH INITIALIZED.\n\nI can help you with:\n- Security best practices\n- Threat assessment\n- Password management\n- Phishing identification\n- Account recovery\n\nType your question below...'
+      content: 'CYBER CHAUKIDAAR AI COACH INITIALIZED.\n\nI can help you with:\n- Security best practices\n- Threat assessment\n- Password management\n- Phishing identification\n- Account recovery\n\nType your question below...'
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
@@ -53,7 +53,7 @@ const AICoach = () => {
       // Add system prompt
       const systemPrompt = {
         role: 'system',
-        content: `You are Cyber Chaukidaar, the AI-powered cybersecurity assistant for CyberGuard - a comprehensive security platform. You provide expert advice on cybersecurity topics while also promoting Cyber Chaukidaar's features when relevant.
+        content: `You are Cyber Chaukidaar, the AI-powered cybersecurity assistant for Cyber Chaukidaar platform - a comprehensive security platform. You provide expert advice on cybersecurity topics while also promoting Cyber Chaukidaar's features when relevant.
 
 ABOUT Cyber Chaukidaar PLATFORM:
 Cyber Chaukidaar is a cutting-edge cybersecurity platform with a unique Terminal CLI aesthetic (hacker-style green-on-black interface). It provides real-time threat detection and protection.
@@ -109,7 +109,7 @@ YOUR RESPONSE STYLE:
 - Format responses in terminal-style with clear sections
 - Be concise but thorough with technical terminology
 - Use uppercase for emphasis (IMPORTANT, WARNING, TIP)
-- Include relevant CyberGuard features naturally in responses
+- Include relevant Cyber Chaukidaar features naturally in responses
 - Be enthusiastic about the platform's capabilities
 - Use bullet points and numbered lists for clarity
 

@@ -14,7 +14,7 @@ import {
  * Design System Showcase
  * 
  * This page demonstrates all UI components and design patterns
- * used throughout the CyberGuard application.
+ * used throughout the Cyber Chaukidaar application.
  */
 
 const DesignSystem = () => {

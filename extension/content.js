@@ -572,7 +572,6 @@
 	function updateStatsIfOnDashboard(stats) {
 		const isDashboard =
 			window.location.hostname.includes("localhost") ||
-			window.location.hostname.includes("cyberguard") ||
 			window.location.hostname.includes("cyberchaukidaar");
 
 		if (isDashboard) {
@@ -660,6 +659,33 @@
 			}
 		}
 	}
+
+	// Handle request to fetch passwords from extension for vault
+	async function handleGetExtensionPasswords() {
+		try {
+			const response = await chrome.runtime.sendMessage({
+				type: "GET_ALL_PASSWORDS"
+			});
+			
+			window.dispatchEvent(new CustomEvent('extensionPasswordsResponse', {
+				detail: {
+					passwords: response?.passwords || {},
+					timestamp: Date.now()
+				}
+			}));
+		} catch (error) {
+			console.error('Failed to get passwords from extension:', error);
+			window.dispatchEvent(new CustomEvent('extensionPasswordsResponse', {
+				detail: {
+					passwords: {},
+					timestamp: Date.now()
+				}
+			}));
+		}
+	}
+
+	// Listen for password fetch requests from vault page
+	window.addEventListener('getExtensionPasswords', handleGetExtensionPasswords);
 
 	// Start when DOM is ready
 	if (document.readyState === "loading") {

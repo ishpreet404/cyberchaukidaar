@@ -1,8 +1,8 @@
-    # CyberGuard Setup Guide
+    # Cyber Chaukidaar Setup Guide
 
 ## 🚀 Quick Start
 
-Follow these steps to get CyberGuard up and running:
+Follow these steps to get Cyber Chaukidaar up and running:
 
 ### 1. Install Dependencies
 
@@ -58,11 +58,11 @@ npm run preview
 
 5. Select the `extension` folder from this project
 
-6. The CyberGuard extension should now appear in your toolbar! 🛡️
+6. The Cyber Chaukidaar extension should now appear in your toolbar! 🛡️
 
 ### Testing the Extension
 
-1. Click the CyberGuard icon in your toolbar
+1. Click the Cyber Chaukidaar icon in your toolbar
 2. You should see the popup with your security stats
 3. Try navigating to different websites
 4. The extension will analyze pages in real-time
@@ -126,7 +126,7 @@ All components follow the terminal aesthetic:
 Create a `.env` file (optional):
 
 \`\`\`env
-VITE_API_URL=https://api.cyberguard.example.com
+VITE_API_URL=https://api.cyberchaukidaar.example.com
 VITE_BREACH_API_KEY=your_api_key_here
 \`\`\`
 

@@ -18,7 +18,7 @@ const Layout = () => {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-terminal-muted">
             <div>
               <span className="text-terminal-green">$ </span>
-              CYBERGUARD v1.0.0 | SYSTEM ACTIVE
+              CYBER CHAUKIDAAR v1.0.0 | SYSTEM ACTIVE
             </div>
             <div className="flex gap-6">
               <span>STATUS: [PROTECTED]</span>
