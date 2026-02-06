@@ -2,7 +2,7 @@
 
 **Complete Cybersecurity Ecosystem - Powered by OrderOfPhoenix**
 
-Cyber Chaukidaar (formerly CyberGuard) is a comprehensive cybersecurity platform with **website**, **USB Vault**, and **browser extension** - all working together to protect you from scams, breaches, phishing, and digital threats.
+Cyber Chaukidaar is a comprehensive cybersecurity platform with **website**, **USB Vault**, and **browser extension** - all working together to protect you from scams, breaches, phishing, and digital threats.
 
 > *Cyber attacks don't hack machines — they hack people.*
 
@@ -103,7 +103,7 @@ npm run build
 ## 📁 Project Structure
 
 \`\`\`
-cyberguard/
+cyber-chaukidaar/
 ├── src/
 │   ├── components/          # Reusable UI components
 │   │   ├── Button.jsx

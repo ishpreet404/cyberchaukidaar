@@ -16,9 +16,10 @@ const USBVault = () => {
   const [showRecoveryMode, setShowRecoveryMode] = useState(false);
   const [userNotes, setUserNotes] = useState('');
   const [isEditingVault, setIsEditingVault] = useState(false);
+  const [triggerUpdate, setTriggerUpdate] = useState(false);
 
   // Domain whitelist - only these domains can decrypt
-  const ALLOWED_DOMAINS = ['localhost', 'cyberguard.app', 'cyberchaukidaar.com'];
+  const ALLOWED_DOMAINS = ['localhost', 'cyberchaukidaar.com'];
 
   // Word list for recovery phrases (BIP39 subset)
   const RECOVERY_WORDS = [
@@ -93,47 +94,49 @@ const USBVault = () => {
     checkBrowserSupport();
     checkDomainValidity();
     checkVaultStatus();
-    
-    // Setup extension sync listeners
-    const handleExtensionSync = (event) => {
-      console.log('Extension sync request received:', event.detail);
-      
-      if (event.detail && event.detail.passwords) {
-        // Merge extension passwords with vault
-        if (!isLocked && vaultData) {
-          const updatedVault = {
-            ...vaultData,
-            extensionPasswords: event.detail.passwords
-          };
-          setVaultData(updatedVault);
-          setSuccess('✓ Synced with extension');
-          setTimeout(() => setSuccess(''), 3000);
-        }
-      }
-    };
-    
-    const handleSyncRequest = () => {
-      console.log('USB sync request from extension');
-      
-      // Send current vault passwords to extension
+
+    // Listen for trigger from extension
+    const handleTriggerUpdate = () => {
       if (!isLocked && vaultData) {
-        window.dispatchEvent(new CustomEvent('usbSyncResponse', {
-          detail: {
-            passwords: vaultData.extensionPasswords || [],
-            timestamp: Date.now()
-          }
-        }));
+        // Set flag to trigger update
+        setTriggerUpdate(true);
+      } else if (isLocked) {
+        setError('⚠️ Please unlock the vault first before updating.');
+        setTimeout(() => setError(''), 3000);
+      } else {
+        setError('⚠️ No vault loaded. Create a vault first.');
+        setTimeout(() => setError(''), 3000);
       }
     };
-    
-    window.addEventListener('usbSyncFromExtension', handleExtensionSync);
-    window.addEventListener('usbSyncRequest', handleSyncRequest);
-    
-    return () => {
-      window.removeEventListener('usbSyncFromExtension', handleExtensionSync);
-      window.removeEventListener('usbSyncRequest', handleSyncRequest);
-    };
+
+    window.addEventListener('triggerVaultUpdate', handleTriggerUpdate);
+    return () => window.removeEventListener('triggerVaultUpdate', handleTriggerUpdate);
   }, [isLocked, vaultData]);
+
+  // Fetch passwords from extension on-demand
+  const fetchExtensionPasswords = async () => {
+    return new Promise((resolve) => {
+      try {
+        // Dispatch event to content script to get passwords from extension
+        const handler = (event) => {
+          window.removeEventListener('extensionPasswordsResponse', handler);
+          resolve(event.detail.passwords || {});
+        };
+        
+        window.addEventListener('extensionPasswordsResponse', handler);
+        window.dispatchEvent(new CustomEvent('getExtensionPasswords'));
+        
+        // Timeout after 2 seconds
+        setTimeout(() => {
+          window.removeEventListener('extensionPasswordsResponse', handler);
+          resolve({});
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to fetch extension passwords:', err);
+        resolve({});
+      }
+    });
+  };
 
   // Check if File System Access API is supported
   const checkBrowserSupport = () => {
@@ -189,18 +192,7 @@ const USBVault = () => {
     return deviceId;
   };
 
-  // Get stored passwords from extension
-  const getStoredPasswords = () => {
-    try {
-      const stored = localStorage.getItem('cyberguard_passwords');
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    } catch (err) {
-      console.error('Error reading stored passwords:', err);
-    }
-    return [];
-  };
+
 
   // Generate checksum for integrity verification
   const generateChecksum = async (data) => {
@@ -349,8 +341,8 @@ const USBVault = () => {
       // Generate unique vault ID
       const vaultId = 'VAULT-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9).toUpperCase();
 
-      // Get passwords from extension storage
-      const storedPasswords = getStoredPasswords();
+      // Fetch passwords from extension
+      const extensionPasswords = await fetchExtensionPasswords();
 
       // Create vault data
       const vaultData = {
@@ -360,7 +352,7 @@ const USBVault = () => {
         lastModified: new Date().toISOString(),
         deviceId: generateDeviceId(),
         recoveryHash: recoveryHash,
-        extensionPasswords: storedPasswords,
+        extensionPasswords: extensionPasswords,
         userNotes: userNotes
       };
 
@@ -374,7 +366,7 @@ const USBVault = () => {
       const handle = await window.showSaveFilePicker({
         suggestedName: 'cyberguard-vault.key',
         types: [{
-          description: 'CyberGuard USB Vault (Store on USB Only)',
+          description: 'Cyber Chaukidaar USB Vault (Store on USB Only)',
           accept: { 'application/octet-stream': ['.key'] }
         }],
         excludeAcceptAllOption: true,
@@ -426,14 +418,15 @@ const USBVault = () => {
         throw new Error('File System Access API not supported');
       }
 
-      // Get current passwords from extension storage
-      const storedPasswords = getStoredPasswords();
+      // Fetch latest passwords from extension
+      const extensionPasswords = await fetchExtensionPasswords();
 
-      // Update vault data
+      // Update vault data - exclude _integrity as it will be regenerated during encryption
+      const { _integrity, ...coreVaultData } = vaultData;
       const updatedVaultData = {
-        ...vaultData,
+        ...coreVaultData,
         lastModified: new Date().toISOString(),
-        extensionPasswords: storedPasswords,
+        extensionPasswords: extensionPasswords,
         userNotes: userNotes
       };
 
@@ -444,7 +437,7 @@ const USBVault = () => {
       const handle = await window.showSaveFilePicker({
         suggestedName: 'cyberguard-vault.key',
         types: [{
-          description: 'CyberGuard USB Vault (Store on USB Only)',
+          description: 'Cyber Chaukidaar USB Vault (Store on USB Only)',
           accept: { 'application/octet-stream': ['.key'] }
         }],
         excludeAcceptAllOption: true,
@@ -473,6 +466,14 @@ const USBVault = () => {
     }
   };
 
+  // Auto-trigger update vault when extension requests it
+  useEffect(() => {
+    if (triggerUpdate && !isLocked && vaultData) {
+      setTriggerUpdate(false); // Reset flag
+      updateVault();
+    }
+  }, [triggerUpdate, isLocked, vaultData]);
+
   // Load and verify vault from USB
   const loadVault = async () => {
     setProcessing(true);
@@ -487,7 +488,7 @@ const USBVault = () => {
       // Show file picker with USB hint
       const [handle] = await window.showOpenFilePicker({
         types: [{
-          description: 'CyberGuard USB Vault Key',
+          description: 'Cyber Chaukidaar USB Vault Key',
           accept: { 'application/octet-stream': ['.key'] }
         }],
         excludeAcceptAllOption: true,
@@ -515,7 +516,7 @@ const USBVault = () => {
 
       // Verify vault ID hasn't been invalidated
       if (storedInfo.vaultId && decryptedVault.vaultId !== storedInfo.vaultId) {
-        throw new Error('VAULT INVALIDATED: This USB key has been revoked. Use recovery phrase to restore access.');
+        throw new Error('⚠ CORRUPTED KEY: This USB key was created before vault recovery and is no longer valid. All pre-recovery keys are permanently voided. Use your current vault key or create a new one.');
       }
 
       // Update access info
@@ -608,7 +609,10 @@ const USBVault = () => {
       storedInfo.recoveryCount = (storedInfo.recoveryCount || 0) + 1;
       localStorage.setItem('cyberguard_vault_info', JSON.stringify(storedInfo));
 
-      setSuccess('✓ Recovery successful! All previous USB keys are now INVALID. Create a new vault and save to USB.');
+      // Clear user notes for fresh start
+      setUserNotes('');
+
+      setSuccess('✓ Recovery successful! All previous USB keys are now VOIDED and corrupted. Create a fresh vault with new notes.');
       setShowRecoveryMode(false);
       setRecoveryInput('');
       setStep('create');
@@ -1028,23 +1032,31 @@ const USBVault = () => {
               {/* Extension Passwords */}
               <div className="space-y-2">
                 <div className="text-sm text-terminal-muted mb-3">STORED PASSWORDS FROM EXTENSION:</div>
-                {vaultData.extensionPasswords && vaultData.extensionPasswords.length > 0 ? (
-                  vaultData.extensionPasswords.map((pwd, index) => (
-                    <div key={index} className="border border-terminal-green bg-terminal-bg p-3">
-                      <div className="text-xs text-terminal-muted">PASSWORD ENTRY #{index + 1}</div>
-                      <div className="text-sm font-bold text-terminal-green">
-                        {pwd.website || pwd.domain || 'Unknown Site'}
-                      </div>
-                      <div className="text-terminal-green font-mono mt-1 text-xs">
-                        Username: {pwd.username || 'N/A'}
-                      </div>
-                      {pwd.savedAt && (
-                        <div className="text-terminal-muted text-xs mt-1">
-                          Saved: {new Date(pwd.savedAt).toLocaleString()}
+                <div className="text-xs text-terminal-green bg-black border border-terminal-green/30 p-2 mb-3">
+                  ⓘ Passwords stored in extension. Click UPDATE VAULT to fetch latest and save to USB.
+                </div>
+                {vaultData.extensionPasswords && Object.keys(vaultData.extensionPasswords).length > 0 ? (
+                  Object.entries(vaultData.extensionPasswords).flatMap(([domain, passwords]) => 
+                    passwords.map((pwd, index) => (
+                      <div key={`${domain}-${index}`} className="border border-terminal-green bg-terminal-bg p-3">
+                        <div className="text-xs text-terminal-muted">PASSWORD ENTRY</div>
+                        <div className="text-sm font-bold text-terminal-green">
+                          {domain}
                         </div>
-                      )}
-                    </div>
-                  ))
+                        <div className="text-terminal-green font-mono mt-1 text-xs">
+                          Username: {pwd.username || 'N/A'}
+                        </div>
+                        <div className="text-terminal-muted text-xs mt-1">
+                          Strength: {pwd.strength?.rating || 'N/A'}
+                        </div>
+                        {pwd.createdAt && (
+                          <div className="text-terminal-muted text-xs mt-1">
+                            Saved: {new Date(pwd.createdAt).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )
                 ) : (
                   <div className="border border-terminal-muted bg-terminal-bg p-3 text-terminal-muted text-sm">
                     No passwords stored yet. Use the extension to save passwords.
@@ -1104,12 +1116,7 @@ const USBVault = () => {
                 ) : (
                   <>
                     <Button onClick={() => {
-                      // Fetch fresh passwords when entering edit mode
-                      const freshPasswords = getStoredPasswords();
-                      setVaultData({
-                        ...vaultData,
-                        extensionPasswords: freshPasswords
-                      });
+                      // Enter edit mode - passwords are already synced via auto-sync
                       setIsEditingVault(true);
                     }} variant="primary" className="flex-1">
                       <Download className="w-4 h-4 mr-2" />

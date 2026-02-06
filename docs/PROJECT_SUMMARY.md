@@ -1,8 +1,8 @@
-# 🛡️ CyberGuard - Project Complete
+# 🛡️ Cyber Chaukidaar - Project Complete
 
 ## ✅ What Has Been Built
 
-I've created a complete, production-ready **CyberGuard** cybersecurity platform with:
+I've created a complete, production-ready **Cyber Chaukidaar** cybersecurity platform with:
 
 ### 🌐 Web Application (React + Vite)
 - **4 Fully Functional Pages:**
@@ -311,7 +311,7 @@ Muted:       #3A9B3A  (Dim green)
 
 ## 🎉 Project Status: COMPLETE ✅
 
-The CyberGuard platform is fully functional with:
+The Cyber Chaukidaar platform is fully functional with:
 - ✅ Complete web application
 - ✅ Browser extension
 - ✅ Design system
@@ -338,7 +338,7 @@ On branch main
 Nothing to commit, working tree clean
 
 $ npm run dev
-> Starting CyberGuard...
+> Starting Cyber Chaukidaar...
 > [OK] Server ready at http://localhost:3000
 > [OK] Extension ready in ./extension/
 > [OK] SYSTEM STATUS: OPERATIONAL

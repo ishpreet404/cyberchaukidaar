@@ -352,4 +352,4 @@ Robert Johnson
 
 **Remember**: Finding your data in a breach is serious, but catching it early and taking action significantly reduces your risk!
 
-🛡️ Stay safe. Stay vigilant. CyberGuard has your back.
+🛡️ Stay safe. Stay vigilant. Cyber Chaukidaar has your back.

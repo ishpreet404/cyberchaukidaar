@@ -119,15 +119,43 @@
 
 			if (!tab || !tab.url) {
 				siteUrlEl.textContent = "No active tab";
+				updateSiteStatus("UNKNOWN");
 				return;
 			}
 
 			const url = new URL(tab.url);
 			siteUrlEl.textContent = url.hostname;
-			updateSiteStatus("SAFE");
+
+			// Skip safety check for internal pages
+			if (url.protocol === "chrome:" || url.protocol === "chrome-extension:" || url.protocol === "about:") {
+				updateSiteStatus("UNKNOWN");
+				return;
+			}
+
+			// Query background script for actual site safety status
+			chrome.runtime.sendMessage(
+				{ type: "GET_SITE_SAFETY", tabId: tab.id },
+				(response) => {
+					// Check for runtime errors first
+					if (chrome.runtime.lastError) {
+						console.log("Error getting site safety:", chrome.runtime.lastError.message);
+						updateSiteStatus("UNKNOWN");
+						return;
+					}
+
+					if (response && response.status) {
+						// Update status with actual threat level
+						updateSiteStatus(response.status.threat);
+					} else {
+						// No status available yet (page still loading or internal page)
+						updateSiteStatus("UNKNOWN");
+					}
+				},
+			);
 		} catch (error) {
 			const el = document.getElementById("site-url");
 			if (el) el.textContent = "Error loading site";
+			updateSiteStatus("UNKNOWN");
 		}
 	}
 
@@ -144,6 +172,9 @@
 			badge.classList.add("status-suspicious");
 		} else if (status === "DANGEROUS") {
 			badge.classList.add("status-dangerous");
+		} else {
+			// UNKNOWN or any other status - neutral styling
+			badge.classList.add("status-suspicious"); // Use suspicious styling as default
 		}
 	}
 
@@ -279,27 +310,28 @@
 		if (syncBtn) {
 			syncBtn.addEventListener("click", async () => {
 				const originalText = syncBtn.textContent;
-				syncBtn.textContent = "⏳ Syncing...";
+				syncBtn.textContent = "⏳ Opening Vault...";
 				syncBtn.disabled = true;
 
 				try {
 					const response = await chrome.runtime.sendMessage({
-						type: "SYNC_WITH_USB",
+						type: "TRIGGER_VAULT_UPDATE",
 					});
 
 					if (response && response.success) {
-						syncBtn.textContent = "✓ Synced!";
-						await loadStats();
+						syncBtn.textContent = "✓ Vault Opened!";
+						setTimeout(() => {
+							alert("\u26a0\ufe0f IMPORTANT: Connect your USB drive now!\n\nThe file picker will open automatically to save your passwords to the vault on USB.");
+						}, 500);
 					} else {
 						syncBtn.textContent = "✗ Failed";
 						alert(
-							response.error ||
-								"Sync failed. Make sure Cyber Chaukidaar website is open.",
+							response.error || "Failed to open vault page.",
 						);
 					}
 				} catch (error) {
 					syncBtn.textContent = "✗ Error";
-					alert("Sync error: " + error.message);
+					alert("Error: " + error.message);
 				}
 
 				setTimeout(() => {

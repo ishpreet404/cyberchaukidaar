@@ -55,7 +55,7 @@ window.addEventListener('usbSyncRequest', () => {
 - **AES-256-GCM encryption** (no password needed)
 - **Device-bound keys** using PBKDF2 (100k iterations)
 - **12-word BIP39 recovery phrases**
-- **Domain whitelisting** (localhost, cyberguard.app, cyberchaukidaar.com)
+- **Domain whitelisting** (localhost, cyberchaukidaar.com)
 - **Tamper detection** (magic bytes, checksums, access counting)
 - **USB-only storage** (File System Access API)
 - **Copy detection** (moving file invalidates it)
@@ -414,7 +414,7 @@ Common fixes:
 ### Extension Security
 - Passwords stored in `chrome.storage.local` (encrypted by browser)
 - Never transmitted over network
-- Only syncs with whitelisted domains (localhost, cyberguard.app)
+- Only syncs with whitelisted domains (localhost, cyberchaukidaar.com)
 - Uses browser's built-in encryption
 
 ### USB Vault Security

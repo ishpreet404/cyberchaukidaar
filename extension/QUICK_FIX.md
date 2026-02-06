@@ -136,7 +136,7 @@ Open extension/simple-test.html and tell me:
 1. **Extension Status:** Green ✓ or Red ✗?
 2. **Console Messages:** Do you see "Cyber Chaukidaar" messages?
 3. **Password Test:** Does dialog appear after clicking submit?
-4. **Popup Display:** Does it show "CYBERGUARD" header with proper styling?
+4. **Popup Display:** Does it show "CYBER CHAUKIDAAR" header with proper styling?
 5. **Any errors:** Screenshot from Console tab
 
 I'll fix the specific issue once I know which test fails!
