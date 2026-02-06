@@ -743,6 +743,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	} else if (request.type === "SAVE_PASSWORD") {
 		savePassword(request.data).then((success) => {
 			sendResponse({ success });
+			// Auto-sync with USB vault after saving password
+			syncWithUSB().then((result) => {
+				if (result.success) {
+					console.log('\u2713 Auto-synced password with USB vault');
+				}
+			}).catch(() => {
+				// Silently ignore if vault is not open
+			});
 		});
 		return true; // Async
 	} else if (request.type === "GET_PASSWORDS") {
