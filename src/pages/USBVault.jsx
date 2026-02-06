@@ -90,10 +90,6 @@ const USBVault = () => {
   };
 
   useEffect(() => {
-    checkBrowserSupport();
-    checkDomainValidity();
-    checkVaultStatus();
-    
     // Setup extension sync listeners
     const handleExtensionSync = (event) => {
       console.log('Extension sync request received:', event.detail);
@@ -429,9 +425,10 @@ const USBVault = () => {
       // Get current passwords from extension storage
       const storedPasswords = getStoredPasswords();
 
-      // Update vault data
+      // Update vault data - exclude _integrity as it will be regenerated during encryption
+      const { _integrity, ...coreVaultData } = vaultData;
       const updatedVaultData = {
-        ...vaultData,
+        ...coreVaultData,
         lastModified: new Date().toISOString(),
         extensionPasswords: storedPasswords,
         userNotes: userNotes
@@ -515,7 +512,7 @@ const USBVault = () => {
 
       // Verify vault ID hasn't been invalidated
       if (storedInfo.vaultId && decryptedVault.vaultId !== storedInfo.vaultId) {
-        throw new Error('VAULT INVALIDATED: This USB key has been revoked. Use recovery phrase to restore access.');
+        throw new Error('⚠ CORRUPTED KEY: This USB key was created before vault recovery and is no longer valid. All pre-recovery keys are permanently voided. Use your current vault key or create a new one.');
       }
 
       // Update access info
@@ -608,7 +605,10 @@ const USBVault = () => {
       storedInfo.recoveryCount = (storedInfo.recoveryCount || 0) + 1;
       localStorage.setItem('cyberguard_vault_info', JSON.stringify(storedInfo));
 
-      setSuccess('✓ Recovery successful! All previous USB keys are now INVALID. Create a new vault and save to USB.');
+      // Clear user notes for fresh start
+      setUserNotes('');
+
+      setSuccess('✓ Recovery successful! All previous USB keys are now VOIDED and corrupted. Create a fresh vault with new notes.');
       setShowRecoveryMode(false);
       setRecoveryInput('');
       setStep('create');
