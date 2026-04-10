@@ -7,16 +7,20 @@ Use this when detection/alerts run on a laptop and Pi only provides video.
 from __future__ import annotations
 
 import argparse
+import os
 import time
 from typing import Optional
 
 import cv2
 from flask import Flask, Response, jsonify
 
+PICAMERA2_IMPORT_ERROR = ''
+
 try:
     from picamera2 import Picamera2  # type: ignore
-except Exception:
+except Exception as exc:
     Picamera2 = None
+    PICAMERA2_IMPORT_ERROR = str(exc)
 
 
 class CameraFeed:
@@ -43,6 +47,16 @@ class CameraFeed:
         src_lower = source.strip().lower()
 
         # Prefer native Pi camera stack for CSI cameras when available.
+        if src_lower in {'picamera2', 'libcamera', 'pi-cam', 'csi', '0'} and Picamera2 is None:
+            self.backend = 'picamera2-unavailable'
+            self.last_error = (
+                'picamera2 module is not available in this Python environment. '
+                'If using a venv, recreate it with --system-site-packages, or run with system python3. '
+                f'Import error: {PICAMERA2_IMPORT_ERROR or "unknown"}'
+            )
+            print(f'[pi-feed] camera init failed: {self.last_error}')
+            return
+
         if src_lower in {'picamera2', 'libcamera', 'pi-cam', 'csi', '0'} and Picamera2 is not None:
             try:
                 self.picam2 = Picamera2()
@@ -126,6 +140,8 @@ def create_app(feed: CameraFeed) -> Flask:
                 'cameraOpen': feed.camera_open,
                 'cameraBackend': feed.backend,
                 'cameraSource': feed.source,
+                'picamera2Available': Picamera2 is not None,
+                'pythonExecutable': os.environ.get('VIRTUAL_ENV') or 'system-python',
                 'streamUrl': '/stream.mjpg',
                 'healthUrl': '/health',
                 'lastError': feed.last_error or None,
@@ -141,6 +157,8 @@ def create_app(feed: CameraFeed) -> Flask:
                 'cameraOpen': feed.camera_open,
                 'cameraBackend': feed.backend,
                 'cameraSource': feed.source,
+                'picamera2Available': Picamera2 is not None,
+                'pythonExecutable': os.environ.get('VIRTUAL_ENV') or 'system-python',
                 'lastFrameTime': feed.last_frame_ts,
                 'framesProduced': feed.frames_produced,
                 'lastError': feed.last_error or None,

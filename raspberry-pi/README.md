@@ -23,7 +23,7 @@ pip install -r requirements.txt
 Notes:
 - `requirements.txt` is intentionally lightweight for feed-only mode.
 - Install `requirements-detector.txt` only on machines running YOLO detection.
-- If OpenCV camera read fails, verify camera support (`libcamera-hello`).
+- If OpenCV camera read fails, verify camera support with `rpicam-hello -t 3000` (or `libcamera-hello -t 3000` on older images).
 
 ## 2) Start detector on Pi
 
@@ -123,7 +123,7 @@ http://<PI_IP>:8081/health
 Important:
 - `http://<PI_IP>:8081/` is info JSON, not the stream.
 - Use `http://<PI_IP>:8081/stream.mjpg` for live video.
-- If stream returns camera errors, verify camera with `libcamera-hello -t 3000`.
+- If stream returns camera errors, verify camera with `rpicam-hello -t 3000` (or `libcamera-hello -t 3000` on older images).
 
 ### 7.2 Run bridge + website on laptop
 
