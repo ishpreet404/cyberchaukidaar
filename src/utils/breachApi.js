@@ -5,7 +5,9 @@
  * API provides access to 15B+ data breach records.
  */
 
-const APP_API_BASE_URL = (import.meta.env.VITE_APP_API_BASE_URL || "http://localhost:8787").replace(/\/+$/, "");
+const APP_API_BASE_URL = (
+	import.meta.env.VITE_APP_API_BASE_URL || "http://localhost:8787"
+).replace(/\/+$/, "");
 const API_URL = `${APP_API_BASE_URL}/api/breach-check`;
 
 /**
