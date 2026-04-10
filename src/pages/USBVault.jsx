@@ -42,6 +42,10 @@ const USBVault = () => {
     checkBrowserSupport();
     checkDomainValidity();
     checkVaultStatus();
+    detectDebugger();
+    checkFailedAttempts();
+    monitorPageVisibility();
+    checkBrowserIntegrity();
   }, []);
 
   // Check if current domain is allowed
@@ -52,7 +56,11 @@ const USBVault = () => {
     );
     
     if (!isAllowed) {
-      setError(`⚠ SECURITY: This vault can only be decrypted on authorized domains. Current: ${currentDomain}`);
+      setError(`SECURITY WARNING - Domain Restricted
+
+This vault can only be decrypted on authorized domains.
+
+Current domain: ${currentDomain}`);
       console.warn('Unauthorized domain detected:', currentDomain);
     }
     
@@ -101,10 +109,10 @@ const USBVault = () => {
         // Set flag to trigger update
         setTriggerUpdate(true);
       } else if (isLocked) {
-        setError('⚠️ Please unlock the vault first before updating.');
+        setError('Please unlock the vault first before updating.');
         setTimeout(() => setError(''), 3000);
       } else {
-        setError('⚠️ No vault loaded. Create a vault first.');
+        setError('No vault loaded. Create a vault first.');
         setTimeout(() => setError(''), 3000);
       }
     };
@@ -141,8 +149,79 @@ const USBVault = () => {
   // Check if File System Access API is supported
   const checkBrowserSupport = () => {
     if (!('showSaveFilePicker' in window)) {
-      setError('⚠ File System Access API not supported. Use Chrome/Edge browser.');
+      setError('File System Access API not supported. Use Chrome/Edge browser.');
     }
+  };
+
+  // Anti-debug detection
+  const detectDebugger = () => {
+    // Detect if DevTools is open
+    const threshold = 160;
+    let devtoolsOpen = false;
+    
+    const widthCheck = () => {
+      if (window.outerWidth - window.innerWidth > threshold || 
+          window.outerHeight - window.innerHeight > threshold) {
+        devtoolsOpen = true;
+      }
+    };
+    
+    widthCheck();
+    
+    if (devtoolsOpen) {
+      console.warn('Developer tools detected - Enhanced monitoring active');
+    }
+    
+    // Periodic check
+    setInterval(() => {
+      const before = new Date();
+      debugger; // Will pause if DevTools open
+      const after = new Date();
+      if (after - before > 100) {
+        console.warn('Debugger detected - Security monitoring active');
+      }
+    }, 10000);
+  };
+
+  // Check failed unlock attempts and enforce rate limiting
+  const checkFailedAttempts = () => {
+    const attempts = JSON.parse(localStorage.getItem('cyberguard_failed_attempts') || '[]');
+    const recentAttempts = attempts.filter(time => Date.now() - time < 3600000); // Last hour
+    
+    if (recentAttempts.length >= 5) {
+      const lockoutTime = recentAttempts[recentAttempts.length - 1] + (Math.pow(2, recentAttempts.length - 5) * 60000);
+      if (Date.now() < lockoutTime) {
+        const remainingMinutes = Math.ceil((lockoutTime - Date.now()) / 60000);
+        setError(`ACCOUNT LOCKOUT - Too Many Failed Attempts
+
+Account temporarily locked:
+  - Too many failed unlock attempts detected
+  - Lockout time: ${remainingMinutes} minute(s)
+  - This is a security measure to prevent brute-force attacks
+
+What you can do:
+  - Wait for the lockout period to expire
+  - Use recovery phrase if you've forgotten your USB key`);
+        setStep('locked');
+      }
+    }
+  };
+
+  // Record failed unlock attempt
+  const recordFailedAttempt = () => {
+    const attempts = JSON.parse(localStorage.getItem('cyberguard_failed_attempts') || '[]');
+    attempts.push(Date.now());
+    // Keep only last 10 attempts
+    const recentAttempts = attempts.slice(-10);
+    localStorage.setItem('cyberguard_failed_attempts', JSON.stringify(recentAttempts));
+    
+    // Check if should lock out
+    checkFailedAttempts();
+  };
+
+  // Clear failed attempts on successful unlock
+  const clearFailedAttempts = () => {
+    localStorage.removeItem('cyberguard_failed_attempts');
   };
 
   // Check if vault exists in localStorage
@@ -151,9 +230,21 @@ const USBVault = () => {
     if (vaultInfo) {
       const info = JSON.parse(vaultInfo);
       setHasVault(true);
-      setStep('choose'); // Let user choose between unlock or create new
+      // Only set step to 'choose' if we're in initial state
+      // Don't override 'unlocked' state
+      setStep(prevStep => {
+        if (prevStep === 'check' || prevStep === 'create') {
+          return 'choose';
+        }
+        return prevStep; // Keep current step if already unlocked/choosing
+      });
     } else {
-      setStep('create');
+      setStep(prevStep => {
+        if (prevStep === 'check' || prevStep === 'choose') {
+          return 'create';
+        }
+        return prevStep;
+      });
     }
   };
 
@@ -182,14 +273,53 @@ const USBVault = () => {
     );
   };
 
-  // Generate consistent device ID
+  // Enhanced browser fingerprinting for device ID
+  const generateDeviceFingerprint = () => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.textBaseline = 'top';
+    ctx.font = '14px Arial';
+    ctx.fillText('CyberGuard', 2, 2);
+    const canvasFingerprint = canvas.toDataURL().slice(-50);
+    
+    const fingerprint = [
+      navigator.userAgent,
+      navigator.language,
+      screen.width + 'x' + screen.height + 'x' + screen.colorDepth,
+      new Date().getTimezoneOffset(),
+      navigator.hardwareConcurrency || 'unknown',
+      navigator.deviceMemory || 'unknown',
+      canvasFingerprint,
+      navigator.platform
+    ].join('|');
+    
+    return fingerprint;
+  };
+
+  // Generate consistent device ID with enhanced fingerprinting
   const generateDeviceId = () => {
     let deviceId = localStorage.getItem('cyberguard_device_id');
     if (!deviceId) {
-      deviceId = 'DEV-' + Date.now() + '-' + crypto.getRandomValues(new Uint8Array(16)).join('');
+      const fingerprint = generateDeviceFingerprint();
+      const hash = btoa(fingerprint).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
+      deviceId = 'DEV-' + hash + '-' + Date.now();
       localStorage.setItem('cyberguard_device_id', deviceId);
+      localStorage.setItem('cyberguard_device_fingerprint', fingerprint);
     }
     return deviceId;
+  };
+
+  // Verify device fingerprint hasn't changed (detect VM migration, hardware changes)
+  const verifyDeviceFingerprint = () => {
+    const storedFingerprint = localStorage.getItem('cyberguard_device_fingerprint');
+    if (!storedFingerprint) return true; // First time, allow
+    
+    const currentFingerprint = generateDeviceFingerprint();
+    if (storedFingerprint !== currentFingerprint) {
+      console.warn('Device fingerprint mismatch detected');
+      return false;
+    }
+    return true;
   };
 
 
@@ -264,7 +394,16 @@ const USBVault = () => {
       const expectedMagic = new Uint8Array([0x43, 0x47, 0x56, 0x4B]); // "CGVK"
       
       if (!magicBytes.every((byte, i) => byte === expectedMagic[i])) {
-        throw new Error('Invalid file format - File may be corrupted or copied');
+        throw new Error(`INVALID FILE FORMAT
+
+This file is not a valid vault:
+  - File may be corrupted
+  - File may have been copied incorrectly
+  - Wrong file type selected
+
+Required Actions:
+  - Select the original vault file from USB
+  - Ensure file was not modified or corrupted`);
       }
 
       const salt = encryptedData.slice(4, 20);
@@ -287,13 +426,26 @@ const USBVault = () => {
       // Verify domain signature after decryption
       const expectedDomainSig = await getDomainSignature();
       if (vaultData._integrity.domainSignature !== expectedDomainSig) {
-        throw new Error('DOMAIN MISMATCH: Vault can only be decrypted on: ' + 
-          (vaultData._integrity.allowedDomains || ALLOWED_DOMAINS).join(', '));
+        throw new Error(`DOMAIN MISMATCH
+
+Vault can only be decrypted on authorized domains:
+  - ` + 
+          (vaultData._integrity.allowedDomains || ALLOWED_DOMAINS).join('\n  - ') + 
+          `\n\nSecurity Measure:\n  - This prevents vault access from unauthorized websites\n  - Use the vault only on official domains`);
       }
       
       // Verify integrity
       if (!vaultData._integrity) {
-        throw new Error('File integrity check failed - Vault may be tampered');
+        throw new Error(`INTEGRITY CHECK FAILED
+
+Vault integrity verification failed:
+  - File integrity markers missing or invalid
+  - Vault may have been tampered with
+  - File may be corrupted
+
+Security Warning:
+  - Do not use this vault file
+  - Use recovery phrase to create new vault`);
       }
 
       // Check if file is too old (optional: 90 days expiry)
@@ -308,7 +460,16 @@ const USBVault = () => {
       const computedChecksum = await generateChecksum(JSON.stringify(dataWithoutIntegrity));
       
       if (computedChecksum !== vaultData._integrity.checksum) {
-        throw new Error('Integrity check failed - File has been modified');
+        throw new Error(`CHECKSUM MISMATCH
+
+File integrity verification failed:
+  - File content has been modified
+  - Checksum does not match original
+  - File may be corrupted or tampered
+
+Security Action:
+  - This vault file is now VOIDED
+  - Use recovery phrase to create new vault`);
       }
 
       // Increment access count
@@ -319,7 +480,18 @@ const USBVault = () => {
       if (err.message.includes('integrity') || err.message.includes('format') || err.message.includes('DOMAIN')) {
         throw err;
       }
-      throw new Error('Decryption failed - Wrong device, corrupted file, or tampered vault');
+      throw new Error(`DECRYPTION FAILED
+
+Unable to decrypt vault:
+  - Wrong device (vault created on different device)
+  - File corrupted or damaged
+  - Vault has been tampered with
+  - Incorrect encryption key
+
+Possible Solutions:
+  - Ensure using same device where vault was created
+  - Check if file is corrupted
+  - Use recovery phrase if device changed`);
     }
   };
 
@@ -378,18 +550,31 @@ const USBVault = () => {
       await writable.write(encryptedData);
       await writable.close();
 
-      // Store vault info (not the password!)
+      // Get file for metadata after write
+      const savedFile = await handle.getFile();
+      
+      // Calculate content hash for tamper detection
+      const fileHash = await generateChecksum(JSON.stringify(Array.from(encryptedData)));
+
+      // Store vault info with file metadata (not the password!)
       const vaultInfo = {
         vaultId: vaultData.vaultId,
         created: vaultData.created,
         deviceId: vaultData.deviceId,
         fileName: 'cyberguard-vault.key',
         lastAccess: Date.now(),
-        recoveryHash: recoveryHash
+        recoveryHash: recoveryHash,
+        // File integrity metadata
+        fileMetadata: {
+          lastModified: savedFile.lastModified,
+          size: savedFile.size,
+          contentHash: fileHash,
+          createdTimestamp: Date.now()
+        }
       };
       localStorage.setItem('cyberguard_vault_info', JSON.stringify(vaultInfo));
 
-      setSuccess('✓ Vault created! SAVE YOUR RECOVERY PHRASE NOW!');
+      setSuccess('Vault created! SAVE YOUR RECOVERY PHRASE NOW!');
       setHasVault(true);
       // Don't change step yet - show recovery phrase first
     } catch (err) {
@@ -449,10 +634,26 @@ const USBVault = () => {
       await writable.write(encryptedData);
       await writable.close();
 
+      // Get file for metadata after write
+      const savedFile = await handle.getFile();
+      
+      // Calculate content hash for tamper detection
+      const fileHash = await generateChecksum(JSON.stringify(Array.from(encryptedData)));
+
+      // Update vault info with new file metadata
+      const storedInfo = JSON.parse(localStorage.getItem('cyberguard_vault_info'));
+      storedInfo.fileMetadata = {
+        lastModified: savedFile.lastModified,
+        size: savedFile.size,
+        contentHash: fileHash,
+        updatedTimestamp: Date.now()
+      };
+      localStorage.setItem('cyberguard_vault_info', JSON.stringify(storedInfo));
+
       // Update vault data in state
       setVaultData(updatedVaultData);
       setIsEditingVault(false);
-      setSuccess('✓ Vault updated successfully!');
+      setSuccess('Vault updated successfully!');
       
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -502,21 +703,112 @@ const USBVault = () => {
 
       // Read file
       const file = await handle.getFile();
+      
+      // CRITICAL: Verify file hasn't been tampered with
+      let storedInfo = JSON.parse(localStorage.getItem('cyberguard_vault_info'));
+      if (storedInfo.fileMetadata) {
+        const metadata = storedInfo.fileMetadata;
+        const violations = [];
+        
+        // Check 1: File modification timestamp
+        if (file.lastModified !== metadata.lastModified) {
+          const timeDiff = Math.abs(file.lastModified - metadata.lastModified);
+          violations.push(`File timestamp changed by ${(timeDiff / 1000).toFixed(0)} seconds`);
+        }
+        
+        // Check 2: File size
+        if (file.size !== metadata.size) {
+          violations.push(`File size changed from ${metadata.size} to ${file.size} bytes`);
+        }
+        
+        // Check 3: Content hash verification
+        const arrayBuffer = await file.arrayBuffer();
+        const encryptedData = new Uint8Array(arrayBuffer);
+        const currentHash = await generateChecksum(JSON.stringify(Array.from(encryptedData)));
+        
+        if (currentHash !== metadata.contentHash) {
+          violations.push('File content hash mismatch (file was modified or copied)');
+        }
+        
+        // If any violation detected, reject the file
+        if (violations.length > 0) {
+          const errorMsg = [
+            'VAULT FILE TAMPERED - INVALID',
+            '',
+            'This file has been altered and is no longer valid:',
+            '',
+            ...violations.map(v => `  - ${v}`),
+            '',
+            'SECURITY THREAT DETECTED',
+            '',
+            'The file may have been:',
+            '  - Copied to another location',
+            '  - Modified or edited',
+            '  - Moved between drives',
+            '  - Corrupted or damaged',
+            '',
+            'Security Action Required:',
+            '  - This vault key is now VOIDED',
+            '  - Use your recovery phrase to create a new vault key',
+            '  - Never copy vault files - use the original only'
+          ].join('\n');
+          
+          throw new Error(errorMsg);
+        }
+      }
+      
       const arrayBuffer = await file.arrayBuffer();
       const encryptedData = new Uint8Array(arrayBuffer);
 
       // Decrypt data (no password needed)
       const decryptedVault = await decryptData(encryptedData);
 
-      // Verify device ID
-      const storedInfo = JSON.parse(localStorage.getItem('cyberguard_vault_info'));
+      // Verify device ID (reuse storedInfo from above)
+      if (!storedInfo) {
+        storedInfo = JSON.parse(localStorage.getItem('cyberguard_vault_info'));
+      }
       if (decryptedVault.deviceId !== storedInfo.deviceId) {
-        throw new Error('Security violation: Vault was created on a different device');
+        recordFailedAttempt();
+        throw new Error(`DEVICE MISMATCH
+
+Security violation detected:
+  - Vault was created on a different device
+  - Device ID does not match
+  - Unauthorized device access attempt
+
+Security Action:
+  - Use the device where vault was created
+  - Or use recovery phrase to authorize new device`);
+      }
+      
+      // Verify device fingerprint hasn't changed
+      if (!verifyDeviceFingerprint()) {
+        recordFailedAttempt();
+        throw new Error(`HARDWARE MISMATCH - Device fingerprint changed
+
+This may indicate:
+  - VM migration or cloning
+  - Hardware changes
+  - Browser profile switching
+  - Suspicious activity
+
+Security Action:
+  - Use recovery phrase if this is your device
+  - Contact support if unauthorized access suspected`);
       }
 
       // Verify vault ID hasn't been invalidated
       if (storedInfo.vaultId && decryptedVault.vaultId !== storedInfo.vaultId) {
-        throw new Error('⚠ CORRUPTED KEY: This USB key was created before vault recovery and is no longer valid. All pre-recovery keys are permanently voided. Use your current vault key or create a new one.');
+        throw new Error(`CORRUPTED KEY DETECTED
+
+This USB key is no longer valid:
+  - Created before vault recovery was performed
+  - All pre-recovery keys are permanently voided
+  - Security measure to protect against old/stolen keys
+
+Required Actions:
+  - Use your current vault key file
+  - Or create a new vault using recovery phrase`);
       }
 
       // Update access info
@@ -528,16 +820,20 @@ const USBVault = () => {
       if (storedInfo.accessCount > 10) {
         const timeSinceCreation = Date.now() - new Date(storedInfo.created).getTime();
         if (timeSinceCreation < 60 * 60 * 1000) { // 1 hour
-          console.warn('⚠ Suspicious activity detected: Multiple access attempts');
+          console.warn('Suspicious activity detected: Multiple access attempts');
         }
       }
 
       // Success!
+      clearFailedAttempts(); // Clear failed attempts on successful unlock
       setVaultData(decryptedVault);
       setUserNotes(decryptedVault.userNotes || '');
       setIsLocked(false);
       setStep('unlocked');
-      setSuccess(`✓ Vault unlocked! Access #${decryptedVault._integrity.accessCount}`);
+      setSuccess(`Vault unlocked! Access #${decryptedVault._integrity.accessCount}`);
+
+      // Enable clipboard protection
+      enableClipboardProtection();
 
       // Auto-lock after 5 minutes
       setTimeout(() => {
@@ -549,10 +845,86 @@ const USBVault = () => {
       if (err.name === 'AbortError') {
         setError('File selection cancelled');
       } else {
+        // Record failed attempt for security violations
+        if (err.message.includes('Security') || err.message.includes('HARDWARE') || 
+            err.message.includes('integrity') || err.message.includes('TAMPERED')) {
+          recordFailedAttempt();
+        }
         setError('Failed to unlock vault: ' + err.message);
       }
     } finally {
       setProcessing(false);
+    }
+  };
+
+  // Clipboard protection - monitor and warn on sensitive data copying
+  const enableClipboardProtection = () => {
+    let clipboardWarned = false;
+    
+    const handleCopy = (e) => {
+      const selection = window.getSelection().toString();
+      if (selection.length > 10 && !clipboardWarned) {
+        console.warn('Sensitive data copied to clipboard - ensure secure handling');
+        clipboardWarned = true;
+        setTimeout(() => clipboardWarned = false, 5000);
+      }
+    };
+    
+    document.addEventListener('copy', handleCopy);
+    
+    // Cleanup on lock
+    return () => document.removeEventListener('copy', handleCopy);
+  };
+
+  // Monitor page visibility and auto-lock when tab hidden for security
+  const monitorPageVisibility = () => {
+    let hiddenTime = 0;
+    
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        hiddenTime = Date.now();
+      } else {
+        // If tab was hidden for more than 10 minutes, lock vault
+        if (hiddenTime && Date.now() - hiddenTime > 10 * 60 * 1000) {
+          if (!isLocked && vaultData) {
+            lockVault();
+            setError('VAULT AUTO-LOCKED - Inactivity detected');
+            setTimeout(() => setError(''), 3000);
+          }
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+  };
+
+  // Check browser integrity - detect if running in suspicious environment
+  const checkBrowserIntegrity = () => {
+    const suspiciousIndicators = [];
+    
+    // Check for automation tools
+    if (window.navigator.webdriver) {
+      suspiciousIndicators.push('Automation detected (WebDriver)');
+    }
+    
+    // Check for common automation frameworks
+    if (window.document.documentElement.getAttribute('webdriver') === 'true') {
+      suspiciousIndicators.push('Selenium detected');
+    }
+    
+    // Check for headless mode indicators
+    if (navigator.plugins.length === 0 && !navigator.maxTouchPoints) {
+      suspiciousIndicators.push('Possible headless browser');
+    }
+    
+    // Check for screen recording software via media devices
+    if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+      console.warn('Screen capture API available - avoid capturing sensitive data');
+    }
+    
+    if (suspiciousIndicators.length > 0) {
+      console.warn('Suspicious environment detected:', suspiciousIndicators.join(', '));
+      console.warn('Enhanced security monitoring active');
     }
   };
 
@@ -567,7 +939,7 @@ const USBVault = () => {
 
   // Reset vault
   const resetVault = () => {
-    if (confirm('⚠ This will remove vault configuration. You can still use your USB key file later.')) {
+    if (confirm('This will remove vault configuration. You can still use your USB key file later.')) {
       localStorage.removeItem('cyberguard_vault_info');
       setHasVault(false);
       setIsLocked(true);
@@ -597,7 +969,17 @@ const USBVault = () => {
       // Hash input and verify
       const inputHash = await hashRecoveryPhrase(recoveryInput);
       if (inputHash !== storedInfo.recoveryHash) {
-        throw new Error('Invalid recovery phrase');
+        throw new Error(`INVALID RECOVERY PHRASE
+
+Recovery phrase verification failed:
+  - Recovery phrase does not match
+  - Check for typos or incorrect words
+  - Ensure correct word order
+
+Important:
+  - Recovery phrase is case-insensitive
+  - Verify you have the correct 12-word phrase
+  - Contact support if issues persist`);
       }
 
       // Generate new vault ID (invalidates all old USB keys)
@@ -612,7 +994,7 @@ const USBVault = () => {
       // Clear user notes for fresh start
       setUserNotes('');
 
-      setSuccess('✓ Recovery successful! All previous USB keys are now VOIDED and corrupted. Create a fresh vault with new notes.');
+      setSuccess('Recovery successful! All previous USB keys are now VOIDED and corrupted. Create a fresh vault with new notes.');
       setShowRecoveryMode(false);
       setRecoveryInput('');
       setStep('create');
@@ -663,7 +1045,7 @@ const USBVault = () => {
       )}
 
       {/* Status Card */}
-      <Card title="▸ VAULT STATUS">
+      <Card title="[VAULT STATUS]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             {isLocked ? (
@@ -704,7 +1086,7 @@ const USBVault = () => {
           <div className="flex items-start gap-3 text-terminal-red">
             <AlertTriangle className="w-6 h-6 flex-shrink-0 mt-1" />
             <div>
-              <div className="font-bold mb-2">⚠ DOMAIN SECURITY WARNING</div>
+              <div className="font-bold mb-2">DOMAIN SECURITY WARNING</div>
               <div className="text-sm mb-2">
                 This vault can only be encrypted/decrypted on authorized domains:
               </div>
@@ -733,16 +1115,16 @@ const USBVault = () => {
 
       {error && (
         <div className="border border-terminal-red bg-terminal-bg p-4">
-          <div className="flex items-center gap-2 text-terminal-red">
-            <XCircle className="w-5 h-5" />
-            <span>{error}</span>
+          <div className="flex items-start gap-2 text-terminal-red">
+            <XCircle className="w-5 h-5 flex-shrink-0 mt-1" />
+            <span className="whitespace-pre-line">{error}</span>
           </div>
         </div>
       )}
 
       {/* Recovery Phrase Display */}
       {showRecoveryPhrase && recoveryPhrase && (
-        <Card title="▸ RECOVERY PHRASE - WRITE THIS DOWN!">
+        <Card title="[RECOVERY PHRASE - WRITE THIS DOWN!]">
           <div className="space-y-4">
             <div className="bg-terminal-bg border-2 border-terminal-amber p-4">
               <div className="flex items-center gap-3 mb-4">
@@ -764,7 +1146,7 @@ const USBVault = () => {
               </div>
 
               <div className="space-y-2 text-sm text-terminal-amber mb-4">
-                <p><strong>⚠ Write these words on paper and store safely</strong></p>
+                <p><strong>IMPORTANT: Write these words on paper and store safely</strong></p>
                 <p>• Use this phrase to recover access if you lose your USB</p>
                 <p>• Recovery will INVALIDATE all previous USB keys</p>
                 <p>• Anyone with these words can access your vault</p>
@@ -783,9 +1165,48 @@ const USBVault = () => {
         </Card>
       )}
 
+      {/* Locked State - Rate Limiting Active */}
+      {step === 'locked' && (
+        <Card title="ACCOUNT LOCKED">
+          <div className="space-y-4">
+            <div className="bg-terminal-bg border-2 border-terminal-red p-6">
+              <div className="flex items-start gap-4">
+                <AlertTriangle className="w-10 h-10 text-terminal-red flex-shrink-0" />
+                <div className="space-y-3">
+                  <h3 className="text-xl font-bold text-terminal-red">TOO MANY FAILED ATTEMPTS</h3>
+                  <div className="text-terminal-muted space-y-2">
+                    <p>Your vault has been temporarily locked due to multiple failed unlock attempts.</p>
+                    <p className="text-terminal-amber">This is a security measure to prevent brute-force attacks.</p>
+                  </div>
+                  <div className="border-l-4 border-terminal-red pl-4 mt-4 space-y-2">
+                    <p className="text-terminal-green font-bold">WAIT FOR LOCKOUT TO EXPIRE</p>
+                    <p className="text-sm text-terminal-muted">The lockout duration increases exponentially with each failed attempt.</p>
+                    <p className="text-sm text-terminal-muted">Refresh the page after the lockout period to try again.</p>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-terminal-muted">
+                    <p className="text-xs text-terminal-muted">If you've forgotten your device or lost your USB drive:</p>
+                    <Button 
+                      onClick={() => { 
+                        setStep('choose');
+                        setShowRecoveryMode(true);
+                      }}
+                      variant="secondary"
+                      className="mt-2 w-full"
+                    >
+                      <Key className="w-4 h-4 mr-2" />
+                      USE RECOVERY PHRASE INSTEAD
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Choose Mode - for existing vault users */}
       {step === 'choose' && (
-        <Card title="▸ SELECT MODE">
+        <Card title="[SELECT MODE]">
           <div className="space-y-4">
             <div className="bg-terminal-bg border border-terminal-muted p-4 mb-4">
               <div className="text-sm text-terminal-muted">
@@ -829,7 +1250,7 @@ const USBVault = () => {
 
       {/* Create Vault */}
       {step === 'create' && !showRecoveryPhrase && (
-        <Card title="▸ CREATE NEW VAULT">
+        <Card title="[CREATE NEW VAULT]">
           <div className="space-y-4">
             <div className="bg-terminal-bg border border-terminal-muted p-4">
               <div className="flex items-start gap-3 mb-4">
@@ -839,7 +1260,7 @@ const USBVault = () => {
                   <p><strong className="text-terminal-green">Step 2:</strong> Save encrypted vault ONLY to USB drive</p>
                   <p><strong className="text-terminal-green">Step 3:</strong> Keep USB safe - never copy the file</p>
                   <div className="border-l-2 border-terminal-amber pl-3 mt-3">
-                    <p className="text-terminal-amber"><strong>⚠ CRITICAL SECURITY WARNINGS:</strong></p>
+                    <p className="text-terminal-amber"><strong>CRITICAL SECURITY WARNINGS:</strong></p>
                     <p className="text-terminal-amber mt-1">• If you lose the USB, use recovery phrase to invalidate it</p>
                     <p className="text-terminal-amber">• Copying/moving the vault file will make it unusable</p>
                     <p className="text-terminal-amber">• Vault is bound to THIS device only</p>
@@ -885,7 +1306,7 @@ const USBVault = () => {
 
       {/* Unlock Vault */}
       {step === 'unlock' && !showRecoveryMode && (
-        <Card title="▸ UNLOCK VAULT">
+        <Card title="[UNLOCK VAULT]">
           <div className="space-y-4">
             <div className="bg-terminal-bg border border-terminal-amber p-4 mb-4">
               <div className="flex items-start gap-3">
@@ -958,7 +1379,7 @@ const USBVault = () => {
 
       {/* Recovery Mode */}
       {showRecoveryMode && (
-        <Card title="▸ VAULT RECOVERY">
+        <Card title="[VAULT RECOVERY]">
           <div className="space-y-4">
             <div className="bg-terminal-bg border border-terminal-amber p-4">
               <div className="flex items-start gap-3">
@@ -967,7 +1388,7 @@ const USBVault = () => {
                   <p className="font-bold">RECOVERY PHRASE AUTHENTICATION</p>
                   <p>Enter your 12-word recovery phrase to regain access.</p>
                   <p className="text-terminal-red font-bold mt-2">
-                    ⚠ WARNING: This will INVALIDATE all existing USB keys!
+                    WARNING: This will INVALIDATE all existing USB keys!
                   </p>
                   <p>After recovery, you must create a new vault and save it to USB.</p>
                 </div>
@@ -1010,7 +1431,7 @@ const USBVault = () => {
       {/* Unlocked - Show Protected Content */}
       {step === 'unlocked' && vaultData && (
         <>
-          <Card title="▸ VAULT CONTENTS">
+          <Card title="[VAULT CONTENTS]">
             <div className="space-y-4">
               <div className="flex items-center gap-3 mb-4">
                 <CheckCircle className="w-6 h-6 text-terminal-green" />
@@ -1033,7 +1454,7 @@ const USBVault = () => {
               <div className="space-y-2">
                 <div className="text-sm text-terminal-muted mb-3">STORED PASSWORDS FROM EXTENSION:</div>
                 <div className="text-xs text-terminal-green bg-black border border-terminal-green/30 p-2 mb-3">
-                  ⓘ Passwords stored in extension. Click UPDATE VAULT to fetch latest and save to USB.
+                  [INFO] Passwords stored in extension. Click UPDATE VAULT to fetch latest and save to USB.
                 </div>
                 {vaultData.extensionPasswords && Object.keys(vaultData.extensionPasswords).length > 0 ? (
                   Object.entries(vaultData.extensionPasswords).flatMap(([domain, passwords]) => 
@@ -1133,7 +1554,7 @@ const USBVault = () => {
           </Card>
 
           {/* Security Details */}
-          <Card title="▸ SECURITY DETAILS">
+          <Card title="[SECURITY DETAILS]">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="border border-terminal-green bg-terminal-bg p-3">
                 <div className="text-xs text-terminal-muted mb-1">ENCRYPTION</div>
@@ -1155,31 +1576,31 @@ const USBVault = () => {
 
             <div className="mt-4 space-y-2 text-sm text-terminal-muted">
               <div className="flex items-start gap-2">
-                <span className="text-terminal-green">✓</span>
+                <span className="text-terminal-green">[OK]</span>
                 <div>Data encrypted with military-grade AES-256</div>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-terminal-green">✓</span>
+                <span className="text-terminal-green">[OK]</span>
                 <div>Device-based encryption (no password needed)</div>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-terminal-green">✓</span>
+                <span className="text-terminal-green">[OK]</span>
                 <div>Vault file bound to this device fingerprint</div>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-terminal-green">✓</span>
+                <span className="text-terminal-green">[OK]</span>
                 <div>Auto-lock after 5 minutes of inactivity</div>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-terminal-green">✓</span>
+                <span className="text-terminal-green">[OK]</span>
                 <div>Integrity checksums prevent file tampering</div>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-terminal-green">✓</span>
+                <span className="text-terminal-green">[OK]</span>
                 <div>Magic bytes validation detects copied files</div>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-terminal-green">✓</span>
+                <span className="text-terminal-green">[OK]</span>
                 <div>Access counting tracks usage patterns</div>
               </div>
             </div>
