@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, AlertTriangle, TrendingUp, Activity, Zap, Blocks, Eye } from 'lucide-react';
+import { Shield, AlertTriangle, TrendingUp, Activity, Zap, Blocks, Eye, RadioTower } from 'lucide-react';
 import { Card, ProgressBar, Button, Separator, TypingText, ASCIIArt, StatusBadge } from '../components';
 
 const Dashboard = () => {
@@ -16,6 +16,16 @@ const Dashboard = () => {
   });
   const [extensionConnected, setExtensionConnected] = useState(false);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [deauthSummary, setDeauthSummary] = useState({
+    online: false,
+    monitorStatus: 'idle',
+    alertCount: 0,
+    lastEvent: null,
+    profile: null,
+    configuredThresholdDeauth: null,
+    configuredThresholdDisassoc: null,
+    adaptiveThresholds: null,
+  });
 
   useEffect(() => {
     // Listen for extension stats updates
@@ -50,6 +60,36 @@ const Dashboard = () => {
     const total = Math.max(0, Math.min(100, base + 50));
     setHygieneScore(total);
   }, [extensionConnected, extensionStats]);
+
+  useEffect(() => {
+    const fetchDeauth = async () => {
+      try {
+        const response = await fetch('http://localhost:8787/api/deauth/events', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Failed to load deauth events');
+        const data = await response.json();
+        const list = Array.isArray(data.events) ? data.events : [];
+        setDeauthSummary({
+          online: true,
+          monitorStatus: data.monitorStatus || (list.length > 0 ? 'active' : 'idle'),
+          alertCount: list.length,
+          lastEvent: list[0] || null,
+          profile: data.profile || null,
+          configuredThresholdDeauth: data.configuredThresholdDeauth ?? null,
+          configuredThresholdDisassoc: data.configuredThresholdDisassoc ?? null,
+          adaptiveThresholds: data.adaptiveThresholds ?? null,
+        });
+      } catch {
+        setDeauthSummary((prev) => ({
+          ...prev,
+          online: false,
+        }));
+      }
+    };
+
+    fetchDeauth();
+    const interval = setInterval(fetchDeauth, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const passwordStrengthScore = Math.min(100, extensionStats.passwordsSaved * 20);
   const safeBrowsingScore = Math.min(100, Math.floor(extensionStats.sitesScanned / 2));
@@ -158,6 +198,42 @@ const Dashboard = () => {
           </div>
         </Card>
       )}
+
+      <Card title="▸ WIFI DEAUTH GUARD">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <RadioTower className="w-5 h-5 text-terminal-green" />
+              <span className="text-terminal-muted">SENSOR STATUS:</span>
+              <span className={deauthSummary.online ? 'text-terminal-green' : 'text-terminal-amber'}>
+                {deauthSummary.online ? deauthSummary.monitorStatus.toUpperCase() : 'OFFLINE'}
+              </span>
+            </div>
+            <StatusBadge status={deauthSummary.alertCount > 0 ? 'warning' : 'ok'}>
+              {deauthSummary.alertCount} ALERTS
+            </StatusBadge>
+          </div>
+
+          <div className="text-sm text-terminal-muted border border-terminal-green p-3">
+            {deauthSummary.lastEvent ? (
+              <>
+                <div className="text-terminal-green font-bold mb-1">Latest Incident</div>
+                <div>{deauthSummary.lastEvent.message}</div>
+                <div className="mt-2 text-xs">
+                  BSSID: {deauthSummary.lastEvent.bssidMasked || 'unknown'} | deauth={deauthSummary.lastEvent.deauthCount || 0} | disassoc={deauthSummary.lastEvent.disassocCount || 0}
+                </div>
+                <div className="mt-1 text-xs">
+                  profile={String(deauthSummary.profile || 'unknown').toUpperCase()} | cfg={deauthSummary.configuredThresholdDeauth ?? 'n/a'}/{deauthSummary.configuredThresholdDisassoc ?? 'n/a'} | adaptive={deauthSummary.adaptiveThresholds === null ? 'n/a' : deauthSummary.adaptiveThresholds ? 'ON' : 'OFF'}
+                </div>
+              </>
+            ) : (
+              <div>No deauth incidents reported yet.</div>
+            )}
+          </div>
+
+          <Button onClick={() => navigate('/deauth-guard')}>OPEN DEAUTH GUARD</Button>
+        </div>
+      </Card>
 
       {/* Cyber Hygiene Score */}
       <Card title="▸ CYBER HYGIENE SCORE">

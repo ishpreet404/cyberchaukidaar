@@ -100,3 +100,105 @@ Bridge server:
 - `POST /api/ai-theft/event`
 - `POST /api/ai-theft/test`
 - `GET /health`
+
+---
+
+# Raspberry Pi Wi-Fi Deauth Guard
+
+This folder also includes a Wi-Fi deauthentication/disassociation detector:
+
+- `deauth_guard.py`
+- Posts alerts to bridge endpoint: `/api/deauth/event`
+- Exposes local health and test endpoints on Pi
+
+## 1) Prepare monitor mode interface
+
+Use a compatible Wi-Fi adapter and place it in monitor mode.
+
+Example:
+
+```bash
+sudo ip link set wlan0 down
+sudo iw wlan0 set monitor control
+sudo ip link set wlan0 up
+```
+
+If your distro creates a separate interface (e.g. `wlan0mon`), use that interface in the command below.
+
+## 2) Start deauth guard
+
+Lab profile (recommended for first validation):
+
+```bash
+source .venv/bin/activate
+python deauth_guard.py \
+  --profile lab \
+  --interface wlan0mon \
+  --source raspberry-pi-deauth \
+  --bridge-url http://<YOUR_WEB_OR_BRIDGE_HOST>:8787/api/deauth/event \
+  --window-seconds 10 \
+  --cooldown-seconds 5
+```
+
+Production profile (stricter defaults):
+
+```bash
+python deauth_guard.py \
+  --profile production \
+  --interface wlan0mon \
+  --source raspberry-pi-deauth \
+  --bridge-url http://<YOUR_WEB_OR_BRIDGE_HOST>:8787/api/deauth/event \
+  --window-seconds 10
+```
+
+Optional manual overrides:
+
+```bash
+python deauth_guard.py \
+  --profile production \
+  --interface wlan0mon \
+  --bssid-filter aa:bb:cc:dd:ee:ff \
+  --threshold-deauth 12 \
+  --threshold-disassoc 6 \
+  --adaptive-multiplier 3.0 \
+  --window-seconds 10 \
+  --cooldown-seconds 30 \
+  --adaptive-thresholds \
+  --alert-secret "your-shared-secret"
+```
+
+Notes:
+- Lab profile defaults: `deauth=2`, `disassoc=1`, `cooldown=5`, adaptive `off`.
+- Production profile defaults: `deauth=12`, `disassoc=6`, `cooldown=30`, adaptive `on`.
+- The bridge stores masked/hashed MAC metadata (`bssidMasked`, `bssidHash`) instead of raw addresses.
+
+## 4) Install as systemd service
+
+Install lab service:
+
+```bash
+./install_service.sh cyberchaukidaar-deauth-guard.service
+```
+
+Install production service:
+
+```bash
+./install_service.sh cyberchaukidaar-deauth-guard-prod.service
+```
+
+## 3) Test endpoints
+
+From Pi:
+
+```bash
+curl http://127.0.0.1:8091/health
+curl http://127.0.0.1:8091/events
+curl -X POST http://127.0.0.1:8091/test-alert
+```
+
+From bridge host:
+
+```bash
+curl http://127.0.0.1:8787/api/deauth/events
+curl -X POST http://127.0.0.1:8787/api/deauth/test
+```

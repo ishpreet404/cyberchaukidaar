@@ -9,6 +9,7 @@ import USBVault from './pages/USBVault';
 import Advanced from './pages/Advanced';
 import ExtensionDashboard from './pages/ExtensionDashboard';
 import AICameraTheft from './pages/AICameraTheft';
+import DeauthGuard from './pages/DeauthGuard';
 import './index.css';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
           <Route path="vault" element={<USBVault />} />
           <Route path="extension-dashboard" element={<ExtensionDashboard />} />
           <Route path="ai-theft" element={<AICameraTheft />} />
+          <Route path="deauth-guard" element={<DeauthGuard />} />
           <Route path="advanced" element={<Advanced />} />
         </Route>
       </Routes>
