@@ -839,8 +839,63 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			sendResponse({ success });
 		});
 		return true;
+	} else if (request.type === "RESOLVE_SHORT_URL") {
+		resolveShortUrl(request.url).then((result) => {
+			sendResponse(result);
+		});
+		return true;
 	}
 });
+
+const shortenerHosts = new Set([
+	"bit.ly",
+	"t.co",
+	"tinyurl.com",
+	"goo.gl",
+	"ow.ly",
+	"is.gd",
+	"buff.ly",
+	"cutt.ly",
+	"rebrand.ly",
+	"s.id",
+	"shorturl.at",
+	"trib.al",
+	"rb.gy",
+	"lnkd.in",
+	"clk.tradedoubler.com",
+]);
+
+async function resolveShortUrl(url) {
+	try {
+		const parsed = new URL(url);
+		if (!shortenerHosts.has(parsed.hostname)) {
+			return { finalUrl: url, note: "not-shortener" };
+		}
+
+		let response;
+		try {
+			response = await fetch(url, {
+				method: "GET",
+				redirect: "follow",
+				cache: "no-store",
+			});
+		} catch (error) {
+			response = await fetch(url, {
+				method: "GET",
+				redirect: "follow",
+				mode: "no-cors",
+				cache: "no-store",
+			});
+		}
+
+		if (response && response.url) {
+			return { finalUrl: response.url };
+		}
+		return { finalUrl: url, note: "no-redirect" };
+	} catch (error) {
+		return { finalUrl: url, error: error.message };
+	}
+}
 
 async function deletePassword(domain, username) {
 	return new Promise((resolve) => {

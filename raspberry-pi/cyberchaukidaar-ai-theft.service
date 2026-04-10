@@ -1,0 +1,16 @@
+[Unit]
+Description=Cyber Chaukidaar YOLOv8n Theft Detector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/hacktivate/raspberry-pi
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/pi/hacktivate/raspberry-pi/.venv/bin/python /home/pi/hacktivate/raspberry-pi/yolov8n_theft_detector.py --camera-source 0 --camera-id pi-cam-1 --bridge-url http://<BRIDGE_HOST>:8787/api/ai-theft/event
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

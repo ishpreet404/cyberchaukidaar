@@ -1,9 +1,12 @@
 import React from 'react';
-import { Blocks } from 'lucide-react';
+import { Blocks, Plug } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../components/Card';
 import Button from '../components/Button';
 
 const Advanced = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -15,68 +18,41 @@ const Advanced = () => {
         </div>
       </div>
 
-      {/* Feature Buttons Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Feature 1 */}
-        <Card title="▸ FEATURE 1">
-          <div className="space-y-4">
-            <div className="text-terminal-muted text-sm mb-4">
-              New advanced feature coming soon...
-            </div>
-            <Button 
-              variant="primary" 
-              className="w-full"
-              disabled
-            >
-              COMING SOON
-            </Button>
+      {/* Extension Dashboard */}
+      <Card title="▸ EXTENSION CONTROL CENTER">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-terminal-muted text-sm">
+            <Plug className="w-4 h-4 text-terminal-green" />
+            <span>Open the dedicated Extension Dashboard for live telemetry and controls.</span>
           </div>
-        </Card>
+          <Button className="w-full md:w-auto" onClick={() => navigate('/extension-dashboard')}>
+            OPEN EXTENSION DASHBOARD
+          </Button>
+        </div>
+      </Card>
 
-        {/* Feature 2 */}
-        <Card title="▸ FEATURE 2">
-          <div className="space-y-4">
-            <div className="text-terminal-muted text-sm mb-4">
-              New advanced feature coming soon...
-            </div>
-            <Button 
-              variant="primary" 
-              className="w-full"
-              disabled
-            >
-              COMING SOON
-            </Button>
+      <Card title="▸ AI THEFT DETECTION">
+        <div className="space-y-4">
+          <div className="text-terminal-muted text-sm">
+            Connect a Raspberry Pi camera stream and monitor theft alerts.
           </div>
-        </Card>
-
-        {/* Feature 3 */}
-        <Card title="▸ FEATURE 3">
-          <div className="space-y-4">
-            <div className="text-terminal-muted text-sm mb-4">
-              New advanced feature coming soon...
-            </div>
-            <Button 
-              variant="primary" 
-              className="w-full"
-              disabled
-            >
-              COMING SOON
-            </Button>
-          </div>
-        </Card>
-      </div>
+          <Button className="w-full md:w-auto" variant="warning" onClick={() => navigate('/ai-theft')}>
+            OPEN AI THEFT DETECTION
+          </Button>
+        </div>
+      </Card>
 
       {/* Info Box */}
       <Card title="▸ ABOUT ADVANCED FEATURES">
         <div className="space-y-3 text-sm text-terminal-muted">
           <p>
-            Advanced features are currently under development. These tools will provide 
-            enhanced security capabilities for power users.
+            Advanced features provide deeper visibility into extension activity,
+            security posture, and secure device sync.
           </p>
           <div className="border-l-2 border-terminal-green pl-3 space-y-1">
-            <p className="text-terminal-green">• Premium threat detection</p>
-            <p className="text-terminal-green">• Advanced analytics</p>
-            <p className="text-terminal-green">• Custom security rules</p>
+            <p className="text-terminal-green">• Extension telemetry</p>
+            <p className="text-terminal-green">• USB Vault controls</p>
+            <p className="text-terminal-green">• Custom security policies</p>
           </div>
         </div>
       </Card>

@@ -7,6 +7,8 @@ import BreachChecker from './pages/BreachChecker';
 import AICoach from './pages/AICoach';
 import USBVault from './pages/USBVault';
 import Advanced from './pages/Advanced';
+import ExtensionDashboard from './pages/ExtensionDashboard';
+import AICameraTheft from './pages/AICameraTheft';
 import './index.css';
 
 function App() {
@@ -19,6 +21,8 @@ function App() {
           <Route path="breach-checker" element={<BreachChecker />} />
           <Route path="ai-coach" element={<AICoach />} />
           <Route path="vault" element={<USBVault />} />
+          <Route path="extension-dashboard" element={<ExtensionDashboard />} />
+          <Route path="ai-theft" element={<AICameraTheft />} />
           <Route path="advanced" element={<Advanced />} />
         </Route>
       </Routes>

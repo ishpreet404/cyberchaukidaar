@@ -9,6 +9,25 @@
 	let currentSafetyStatus = null;
 	let safetyOverlay = null;
 	let passwordFields = new Map();
+	let shortLinkProcessed = new WeakSet();
+
+	const shortenerHosts = new Set([
+		"bit.ly",
+		"t.co",
+		"tinyurl.com",
+		"goo.gl",
+		"ow.ly",
+		"is.gd",
+		"buff.ly",
+		"cutt.ly",
+		"rebrand.ly",
+		"s.id",
+		"shorturl.at",
+		"trib.al",
+		"rb.gy",
+		"lnkd.in",
+		"clk.tradedoubler.com",
+	]);
 
 	// Listen for site safety check results from background
 	chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -293,6 +312,63 @@
 					form.addEventListener("submit", (e) => handleFormSubmit(e, form));
 				}
 			}
+		});
+	}
+
+	function isShortLink(url) {
+		try {
+			const parsed = new URL(url, window.location.href);
+			return shortenerHosts.has(parsed.hostname);
+		} catch (error) {
+			return false;
+		}
+	}
+
+	function processShortLinks(root = document) {
+		const links = root.querySelectorAll ? root.querySelectorAll("a[href]") : [];
+		links.forEach((link) => {
+			if (shortLinkProcessed.has(link)) return;
+			const href = link.getAttribute("href");
+			if (!href || !isShortLink(href)) return;
+
+			shortLinkProcessed.add(link);
+			link.dataset.cyberShortLink = "true";
+
+			const button = document.createElement("button");
+			button.textContent = "Reveal";
+			button.style.cssText = `
+				margin-left: 6px;
+				padding: 2px 6px;
+				border: 1px solid #33ff00;
+				background: transparent;
+				color: #33ff00;
+				font-family: 'JetBrains Mono', monospace;
+				font-size: 10px;
+				cursor: pointer;
+			`;
+
+			button.addEventListener("click", async (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				button.textContent = "...";
+				const response = await chrome.runtime.sendMessage({
+					type: "RESOLVE_SHORT_URL",
+					url: new URL(href, window.location.href).href,
+				});
+				if (response && response.finalUrl) {
+					link.setAttribute("href", response.finalUrl);
+					button.textContent = "Revealed";
+					button.style.borderColor = "#3A9B3A";
+					button.style.color = "#3A9B3A";
+					button.title = response.finalUrl;
+				} else {
+					button.textContent = "Failed";
+					button.style.borderColor = "#ff3333";
+					button.style.color = "#ff3333";
+				}
+			});
+
+			link.insertAdjacentElement("afterend", button);
 		});
 	}
 
@@ -636,6 +712,9 @@
 		// Monitor password fields
 		monitorPasswordFields();
 
+		// Detect short links
+		processShortLinks();
+
 		// Check for auto-fill opportunities
 		checkForAutoFill();
 
@@ -643,6 +722,7 @@
 		const observer = new MutationObserver(() => {
 			monitorPasswordFields();
 			checkForAutoFill();
+			processShortLinks();
 		});
 
 		observer.observe(document.body, {

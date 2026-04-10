@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "ai-alerts": "node server/ai-theft-bridge.js",
+    "dev:web+alerts": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "build:extension": "node scripts/build-extension.js"
