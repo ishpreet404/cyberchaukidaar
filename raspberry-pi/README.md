@@ -101,11 +101,29 @@ source .venv/bin/activate
 python pi_camera_feed.py --camera-source 0 --host 0.0.0.0 --port 8081
 ```
 
+For Raspberry Pi CSI camera (recommended):
+
+```bash
+sudo apt install -y python3-picamera2 libcamera-apps
+python pi_camera_feed.py --camera-source picamera2 --host 0.0.0.0 --port 8081
+```
+
 Pi stream URL:
 
 ```text
 http://<PI_IP>:8081/stream.mjpg
 ```
+
+Health URL:
+
+```text
+http://<PI_IP>:8081/health
+```
+
+Important:
+- `http://<PI_IP>:8081/` is info JSON, not the stream.
+- Use `http://<PI_IP>:8081/stream.mjpg` for live video.
+- If stream returns camera errors, verify camera with `libcamera-hello -t 3000`.
 
 ### 7.2 Run bridge + website on laptop
 
