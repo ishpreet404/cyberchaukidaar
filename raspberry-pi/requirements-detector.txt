@@ -1,0 +1,4 @@
+# Full runtime for YOLOv8n detection + bridge event posting.
+-r requirements.txt
+ultralytics>=8.2.0
+requests>=2.31.0

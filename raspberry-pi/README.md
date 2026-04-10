@@ -11,7 +11,7 @@ It does three jobs:
 
 ```bash
 sudo apt update
-sudo apt install -y python3-venv python3-pip libatlas-base-dev libopenblas-dev
+sudo apt install -y python3-venv python3-pip
 
 cd ~/hacktivate/raspberry-pi
 python3 -m venv .venv
@@ -21,13 +21,15 @@ pip install -r requirements.txt
 ```
 
 Notes:
-- `ultralytics` will download `yolov8n.pt` on first run.
+- `requirements.txt` is intentionally lightweight for feed-only mode.
+- Install `requirements-detector.txt` only on machines running YOLO detection.
 - If OpenCV camera read fails, verify camera support (`libcamera-hello`).
 
 ## 2) Start detector on Pi
 
 ```bash
 source .venv/bin/activate
+pip install -r requirements-detector.txt
 python yolov8n_theft_detector.py \
   --camera-source 0 \
   --camera-id pi-cam-1 \
@@ -136,7 +138,7 @@ On laptop (Windows PowerShell):
 cd D:\hacktivate
 python -m venv .venv
 .\.venv\Scripts\activate
-pip install -r raspberry-pi/requirements.txt
+pip install -r raspberry-pi/requirements-detector.txt
 python raspberry-pi/yolov8n_theft_detector.py --camera-source http://<PI_IP>:8081/stream.mjpg --camera-id pi-cam-1 --bridge-url http://127.0.0.1:8787/api/ai-theft/event --stream-host 0.0.0.0 --stream-port 8080
 ```
 
