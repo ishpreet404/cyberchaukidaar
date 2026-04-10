@@ -8,6 +8,7 @@ import {
   MessageSquare, 
   Key,
   Blocks,
+  RadioTower,
   Menu,
   X
 } from 'lucide-react';
@@ -21,6 +22,7 @@ const Navigation = () => {
     { path: '/scam-analyzer', label: 'SCAM ANALYZER', icon: AlertTriangle },
     { path: '/breach-checker', label: 'BREACH CHECK', icon: Database },
     { path: '/ai-coach', label: 'AI COACH', icon: MessageSquare },
+    { path: '/deauth-guard', label: 'DEAUTH GUARD', icon: RadioTower },
     { path: '/vault', label: 'VAULT', icon: Key },
     { path: '/advanced', label: 'ADVANCED', icon: Blocks },
   ];

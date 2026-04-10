@@ -3,21 +3,60 @@
 	"use strict";
 
 	let statsRefreshInterval = null;
+	const STORAGE_DEAUTH_BRIDGE_BASE = "deauthBridgeBaseUrl";
+	const DEFAULT_DEAUTH_BRIDGE_BASE = "http://localhost:8787";
+	let deauthBridgeBaseUrl = DEFAULT_DEAUTH_BRIDGE_BASE;
 	let masterUnlocked = false;
 	let masterHash = null;
 
 	document.addEventListener("DOMContentLoaded", async () => {
 		initializeTabs();
+			await loadDeauthBridgeSettings();
 		await loadCurrentSite();
 		await loadStats();
+			await loadDeauthStatus();
 		await loadMasterSettings();
 		await loadPasswords();
 		setupEventListeners();
 
 		statsRefreshInterval = setInterval(async () => {
 			await loadStats();
+			await loadDeauthStatus();
 		}, 2000);
 	});
+
+	function normalizeBridgeBaseUrl(raw) {
+		const value = String(raw || "").trim();
+		if (!value) return DEFAULT_DEAUTH_BRIDGE_BASE;
+		try {
+			const parsed = new URL(value);
+			return parsed.origin;
+		} catch (_error) {
+			return value.replace(/\/+$/, "");
+		}
+	}
+
+	function deauthEventsUrl() {
+		return `${deauthBridgeBaseUrl.replace(/\/+$/, "")}/api/deauth/events`;
+	}
+
+	async function loadDeauthBridgeSettings() {
+		const stored = await chrome.storage.local.get([STORAGE_DEAUTH_BRIDGE_BASE]);
+		deauthBridgeBaseUrl = normalizeBridgeBaseUrl(stored[STORAGE_DEAUTH_BRIDGE_BASE]);
+
+		const inputEl = document.getElementById("deauth-bridge-input");
+		const statusEl = document.getElementById("deauth-bridge-status");
+		if (inputEl) inputEl.value = deauthBridgeBaseUrl;
+		if (statusEl) statusEl.textContent = `Current: ${deauthBridgeBaseUrl}`;
+	}
+
+	async function saveDeauthBridgeSettings(value) {
+		deauthBridgeBaseUrl = normalizeBridgeBaseUrl(value);
+		await chrome.storage.local.set({ [STORAGE_DEAUTH_BRIDGE_BASE]: deauthBridgeBaseUrl });
+
+		const statusEl = document.getElementById("deauth-bridge-status");
+		if (statusEl) statusEl.textContent = `Current: ${deauthBridgeBaseUrl}`;
+	}
 
 	window.addEventListener("beforeunload", () => {
 		if (statsRefreshInterval) {
@@ -211,6 +250,42 @@
 		}
 	}
 
+	async function loadDeauthStatus() {
+		const statusEl = document.getElementById("deauth-status");
+		const summaryEl = document.getElementById("deauth-summary");
+		if (!statusEl || !summaryEl) return;
+
+		try {
+			const response = await fetch(deauthEventsUrl(), { cache: "no-store" });
+			if (!response.ok) throw new Error("bridge unavailable");
+			const data = await response.json();
+			const list = Array.isArray(data.events) ? data.events : [];
+			const latest = list[0] || null;
+
+			statusEl.className = "status-badge";
+			if (latest && latest.severity === "high") {
+				statusEl.classList.add("status-dangerous");
+				statusEl.textContent = "HIGH";
+			} else if (latest) {
+				statusEl.classList.add("status-suspicious");
+				statusEl.textContent = String(latest.severity || "MEDIUM").toUpperCase();
+			} else {
+				statusEl.classList.add("status-safe");
+				statusEl.textContent = "CLEAR";
+			}
+
+			if (latest) {
+				summaryEl.textContent = `${latest.bssidMasked || "unknown"} | deauth=${latest.deauthCount || 0} | disassoc=${latest.disassocCount || 0}`;
+			} else {
+				summaryEl.textContent = "No deauth incidents detected";
+			}
+		} catch (_error) {
+			statusEl.className = "status-badge status-suspicious";
+			statusEl.textContent = "OFFLINE";
+			summaryEl.textContent = "Bridge unavailable";
+		}
+	}
+
 	async function loadPasswords() {
 		const listElement = document.getElementById("password-list");
 		const lockElement = document.getElementById("password-lock");
@@ -345,6 +420,38 @@
 		if (dashboardBtn) {
 			dashboardBtn.addEventListener("click", () => {
 				chrome.tabs.create({ url: "http://localhost:5173" });
+			});
+		}
+
+		const bridgeSaveBtn = document.getElementById("deauth-bridge-save");
+		if (bridgeSaveBtn) {
+			bridgeSaveBtn.addEventListener("click", async () => {
+				const inputEl = document.getElementById("deauth-bridge-input");
+				const nextValue = inputEl ? inputEl.value : "";
+				await saveDeauthBridgeSettings(nextValue);
+				await loadDeauthStatus();
+			});
+		}
+
+		const bridgeAutoBtn = document.getElementById("deauth-bridge-auto");
+		if (bridgeAutoBtn) {
+			bridgeAutoBtn.addEventListener("click", async () => {
+				let autoBase = DEFAULT_DEAUTH_BRIDGE_BASE;
+				try {
+					const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+					if (tab && tab.url) {
+						const parsed = new URL(tab.url);
+						if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+							autoBase = `${parsed.protocol}//${parsed.hostname}:8787`;
+						}
+					}
+				} catch (_error) {
+					// Keep default localhost base when active tab URL is unavailable.
+				}
+				const inputEl = document.getElementById("deauth-bridge-input");
+				if (inputEl) inputEl.value = autoBase;
+				await saveDeauthBridgeSettings(autoBase);
+				await loadDeauthStatus();
 			});
 		}
 

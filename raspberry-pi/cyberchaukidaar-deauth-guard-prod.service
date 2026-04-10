@@ -1,0 +1,16 @@
+[Unit]
+Description=Cyber Chaukidaar Wi-Fi Deauth Guard (Production)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/hacktivate/raspberry-pi
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/pi/hacktivate/raspberry-pi/.venv/bin/python /home/pi/hacktivate/raspberry-pi/deauth_guard.py --profile production --interface wlan0mon --source raspberry-pi-deauth --bridge-url http://<BRIDGE_HOST>:8787/api/deauth/event --window-seconds 10
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

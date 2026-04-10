@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SERVICE_NAME="cyberchaukidaar-ai-theft.service"
+SERVICE_NAME="${1:-cyberchaukidaar-ai-theft.service}"
 
 if [ ! -f "$SERVICE_NAME" ]; then
   echo "Service file not found: $SERVICE_NAME"
+  echo "Usage: ./install_service.sh [service-file]"
+  echo "Example: ./install_service.sh cyberchaukidaar-deauth-guard.service"
   exit 1
 fi
 

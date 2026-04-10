@@ -42,6 +42,17 @@ const Advanced = () => {
         </div>
       </Card>
 
+      <Card title="▸ WIFI DEAUTH GUARD">
+        <div className="space-y-4">
+          <div className="text-terminal-muted text-sm">
+            Monitor deauthentication/disassociation bursts from a Raspberry Pi Wi-Fi sensor.
+          </div>
+          <Button className="w-full md:w-auto" variant="warning" onClick={() => navigate('/deauth-guard')}>
+            OPEN DEAUTH GUARD
+          </Button>
+        </div>
+      </Card>
+
       {/* Info Box */}
       <Card title="▸ ABOUT ADVANCED FEATURES">
         <div className="space-y-3 text-sm text-terminal-muted">
