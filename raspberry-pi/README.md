@@ -85,6 +85,70 @@ Check logs:
 sudo journalctl -u cyberchaukidaar-ai-theft.service -f
 ```
 
+## 7) Laptop-first mode (Pi streams, laptop does AI + alerts)
+
+Use this mode when you want everything except raw camera capture to run on your laptop.
+
+### 7.1 Start Pi camera stream only
+
+On Raspberry Pi:
+
+```bash
+cd ~/cyberchaukidaar/raspberry-pi
+source .venv/bin/activate
+python pi_camera_feed.py --camera-source 0 --host 0.0.0.0 --port 8081
+```
+
+Pi stream URL:
+
+```text
+http://<PI_IP>:8081/stream.mjpg
+```
+
+### 7.2 Run bridge + website on laptop
+
+On laptop (Windows PowerShell):
+
+```powershell
+cd D:\hacktivate
+npm install
+npm run ai-alerts
+```
+
+Open second terminal:
+
+```powershell
+cd D:\hacktivate
+npm run dev
+```
+
+Your laptop bridge host on current Wi-Fi is:
+
+```text
+10.13.110.236
+```
+
+### 7.3 Run YOLO detector on laptop using Pi stream as input
+
+On laptop (Windows PowerShell):
+
+```powershell
+cd D:\hacktivate
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r raspberry-pi/requirements.txt
+python raspberry-pi/yolov8n_theft_detector.py --camera-source http://<PI_IP>:8081/stream.mjpg --camera-id pi-cam-1 --bridge-url http://127.0.0.1:8787/api/ai-theft/event --stream-host 0.0.0.0 --stream-port 8080
+```
+
+### 7.4 Website AI Theft page values
+
+- Stream URL: `http://127.0.0.1:8080/stream.mjpg`
+- Alert Bridge Base URL: `http://127.0.0.1:8787`
+
+This means:
+- Pi only sends video frames.
+- Laptop runs YOLOv8n, event generation, bridge, Telegram alerts, and web dashboard.
+
 ## Endpoint summary
 
 Pi detector server:
