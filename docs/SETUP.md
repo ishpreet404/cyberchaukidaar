@@ -123,12 +123,19 @@ All components follow the terminal aesthetic:
 
 ### Environment Variables
 
-Create a `.env` file (optional):
+Create a `.env` file from `.env.example`:
 
 \`\`\`env
-VITE_API_URL=https://api.cyberchaukidaar.example.com
-VITE_BREACH_API_KEY=your_api_key_here
+VITE_APP_API_BASE_URL=http://localhost:8787
+BREACH_API_TOKEN=your_breach_api_token
+OPENROUTER_API_KEY=your_openrouter_api_key
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+TELEGRAM_CHAT_ID=your_telegram_chat_id
 \`\`\`
+
+Important:
+- Keep secrets only in `.env` (ignored by git).
+- Do not place API tokens in frontend files.
 
 ### Tailwind Customization
 

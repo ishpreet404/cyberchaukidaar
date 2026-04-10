@@ -5,8 +5,8 @@
  * API provides access to 15B+ data breach records.
  */
 
-const API_URL = "https://leakosintapi.com/";
-const API_TOKEN = "8518143178:mR452s1L";
+const APP_API_BASE_URL = (import.meta.env.VITE_APP_API_BASE_URL || "http://localhost:8787").replace(/\/+$/, "");
+const API_URL = `${APP_API_BASE_URL}/api/breach-check`;
 
 /**
  * Search for data breaches
@@ -16,11 +16,9 @@ const API_TOKEN = "8518143178:mR452s1L";
  */
 export const searchBreaches = async (query, limit = 100) => {
 	const payload = {
-		token: API_TOKEN,
-		request: query,
+		query,
 		limit: limit,
 		lang: "en",
-		type: "json",
 	};
 
 	const response = await fetch(API_URL, {

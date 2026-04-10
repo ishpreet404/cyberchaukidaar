@@ -172,7 +172,7 @@ const testAPI = async () => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      token: '8518143178:mR452s1L',
+      token: '<BREACH_API_TOKEN>',
       request: '918375016669',
       limit: 100,
       lang: 'en',

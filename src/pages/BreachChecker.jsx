@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { Database, Search, AlertTriangle, Eye, Shield, Clock, Server } from 'lucide-react';
 import { Card, Input, Button, StatusBadge, Separator } from '../components';
 
-// API Configuration
-const API_URL = "https://leakosintapi.com/";
-const API_TOKEN = "8518143178:mR452s1L";
+const APP_API_BASE_URL = (import.meta.env.VITE_APP_API_BASE_URL || 'http://localhost:8787').replace(/\/+$/, '');
+const BREACH_CHECK_ENDPOINT = `${APP_API_BASE_URL}/api/breach-check`;
 
 const BreachChecker = () => {
   const [query, setQuery] = useState('');
@@ -48,14 +47,12 @@ const BreachChecker = () => {
     
     try {
       const payload = {
-        token: API_TOKEN,
-        request: query,
+        query,
         limit: 100,
-        lang: "en",
-        type: "json",
+        lang: "en"
       };
 
-      const response = await fetch(API_URL, {
+      const response = await fetch(BREACH_CHECK_ENDPOINT, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -65,8 +62,8 @@ const BreachChecker = () => {
 
       const data = await response.json();
       
-      if (data.error) {
-        setError(`API Error ${data.error}: Please try again later`);
+      if (!response.ok || data.error) {
+        setError(`API Error: ${data.error || response.statusText || 'Please try again later'}`);
       } else {
         setResults(data);
       }

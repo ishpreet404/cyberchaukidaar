@@ -5,6 +5,15 @@ build/
 *.log
 .env
 .env.local
+.env.*
+!.env.example
+.venv/
+venv/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pt
 .vscode/
 .idea/
 *.swp

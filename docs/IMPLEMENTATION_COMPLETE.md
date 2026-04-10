@@ -67,7 +67,7 @@ POST https://leakosintapi.com/
 ### Request Format
 ```json
 {
-  "token": "8518143178:mR452s1L",
+  "token": "<BREACH_API_TOKEN>",
   "request": "user@example.com",
   "limit": 100,
   "lang": "en",

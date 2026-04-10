@@ -2,9 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Send, Bot, User } from 'lucide-react';
 import { Card, Input, Button, Separator } from '../components';
 
-// OpenRouter API Configuration
-const OPENROUTER_API_KEY = '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'; // Free tier key
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const APP_API_BASE_URL = (import.meta.env.VITE_APP_API_BASE_URL || 'http://localhost:8787').replace(/\/+$/, '');
+const AI_COACH_ENDPOINT = `${APP_API_BASE_URL}/api/ai-coach/chat`;
 const MODEL_NAME = 'arcee-ai/trinity-mini:free';
 
 const AICoach = () => {
@@ -116,14 +115,11 @@ YOUR RESPONSE STYLE:
 Remember: You're not just an AI assistant - you're part of the Cyber Chaukidaar security ecosystem!`
       };
 
-      // Call OpenRouter API
-      const response = await fetch(OPENROUTER_API_URL, {
+      // Call backend proxy (keeps OpenRouter API key on server)
+      const response = await fetch(AI_COACH_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'Cyber Chaukidaar AI Coach'
         },
         body: JSON.stringify({
           model: MODEL_NAME,
@@ -132,7 +128,9 @@ Remember: You're not just an AI assistant - you're part of the Cyber Chaukidaar 
           max_tokens: 1000,
           top_p: 1,
           frequency_penalty: 0,
-          presence_penalty: 0
+          presence_penalty: 0,
+          referer: window.location.origin,
+          title: 'Cyber Chaukidaar AI Coach'
         })
       });
 

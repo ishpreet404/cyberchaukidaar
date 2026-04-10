@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { createServer } from 'http';
 import { URL } from 'url';
 
@@ -5,6 +6,11 @@ const PORT = Number(process.env.ALERT_SERVER_PORT || 8787);
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
 const ALERT_SHARED_SECRET = process.env.ALERT_SHARED_SECRET || '';
+const BREACH_API_URL = process.env.BREACH_API_URL || 'https://leakosintapi.com/';
+const BREACH_API_TOKEN = process.env.BREACH_API_TOKEN || '';
+const OPENROUTER_API_URL = process.env.OPENROUTER_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'arcee-ai/trinity-mini:free';
 
 const clients = new Set();
 const events = [];
@@ -71,10 +77,17 @@ function pushEvent(event) {
 }
 
 function broadcastEvent(event) {
-  const packet = `event: theft\ndata: ${JSON.stringify(event)}\n\n`;
+  const encoded = JSON.stringify(event);
+  const type = String(event.type || 'THEFT').toLowerCase();
+  const packets = [
+    `event: ${type}\ndata: ${encoded}\n\n`,
+    `event: ai-theft\ndata: ${encoded}\n\n`,
+    `data: ${encoded}\n\n`,
+  ];
+
   clients.forEach((res) => {
     try {
-      res.write(packet);
+      packets.forEach((packet) => res.write(packet));
     } catch (error) {
       clients.delete(res);
     }
@@ -140,8 +153,111 @@ const server = createServer(async (req, res) => {
       ok: true,
       service: 'ai-theft-bridge',
       telegramEnabled: Boolean(TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID),
+      breachApiConfigured: Boolean(BREACH_API_TOKEN),
+      openRouterConfigured: Boolean(OPENROUTER_API_KEY),
       eventCount: events.length,
     });
+    return;
+  }
+
+  if (req.method === 'POST' && reqUrl.pathname === '/api/breach-check') {
+    if (!BREACH_API_TOKEN) {
+      json(res, 500, { ok: false, error: 'breach-api-token-not-configured' });
+      return;
+    }
+
+    try {
+      const body = await readJsonBody(req);
+      const query = String(body.query || '').trim();
+      if (!query) {
+        json(res, 400, { ok: false, error: 'query-required' });
+        return;
+      }
+
+      const limitRaw = Number(body.limit);
+      const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(1000, Math.floor(limitRaw))) : 100;
+      const lang = typeof body.lang === 'string' && body.lang.trim() ? body.lang.trim() : 'en';
+
+      const payload = {
+        token: BREACH_API_TOKEN,
+        request: query,
+        limit,
+        lang,
+        type: 'json',
+      };
+
+      const upstream = await fetch(BREACH_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const raw = await upstream.text();
+      let data;
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        json(res, 502, { ok: false, error: 'invalid-json-from-breach-provider' });
+        return;
+      }
+
+      json(res, upstream.ok ? 200 : upstream.status, data);
+    } catch (error) {
+      json(res, 400, { ok: false, error: error.message });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && reqUrl.pathname === '/api/ai-coach/chat') {
+    if (!OPENROUTER_API_KEY) {
+      json(res, 500, { ok: false, error: 'openrouter-api-key-not-configured' });
+      return;
+    }
+
+    try {
+      const body = await readJsonBody(req);
+      const messages = Array.isArray(body.messages) ? body.messages : [];
+      if (messages.length === 0) {
+        json(res, 400, { ok: false, error: 'messages-required' });
+        return;
+      }
+
+      const model = typeof body.model === 'string' && body.model.trim() ? body.model.trim() : OPENROUTER_MODEL;
+
+      const payload = {
+        model,
+        messages,
+        temperature: typeof body.temperature === 'number' ? body.temperature : 0.7,
+        max_tokens: typeof body.max_tokens === 'number' ? body.max_tokens : 1000,
+        top_p: typeof body.top_p === 'number' ? body.top_p : 1,
+        frequency_penalty: typeof body.frequency_penalty === 'number' ? body.frequency_penalty : 0,
+        presence_penalty: typeof body.presence_penalty === 'number' ? body.presence_penalty : 0,
+      };
+
+      const upstream = await fetch(OPENROUTER_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': typeof body.referer === 'string' ? body.referer : 'http://localhost',
+          'X-Title': typeof body.title === 'string' ? body.title : 'Cyber Chaukidaar AI Coach',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const raw = await upstream.text();
+      let data;
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        json(res, 502, { ok: false, error: 'invalid-json-from-openrouter' });
+        return;
+      }
+
+      json(res, upstream.ok ? 200 : upstream.status, data);
+    } catch (error) {
+      json(res, 400, { ok: false, error: error.message });
+    }
     return;
   }
 
@@ -188,7 +304,12 @@ const server = createServer(async (req, res) => {
       pushEvent(event);
       broadcastEvent(event);
 
-      const telegram = await sendTelegramAlert(event);
+      const eventType = String(event.type || '').toUpperCase();
+      const shouldNotifyTelegram = eventType === 'THEFT' || eventType === 'TEST';
+      const telegram = shouldNotifyTelegram
+        ? await sendTelegramAlert(event)
+        : { sent: false, reason: 'skipped-non-alert-type' };
+
       json(res, 200, { ok: true, event, telegram });
     } catch (error) {
       json(res, 400, { ok: false, error: error.message });

@@ -29,6 +29,7 @@ class DetectorConfig:
     camera_id: str
     model_path: str
     confidence: float
+    detection_log_interval_seconds: int
     min_streak_frames: int
     cooldown_seconds: int
     bridge_url: str
@@ -51,6 +52,7 @@ class TheftDetector:
         self._events: List[dict] = []
 
         self._detection_streak = 0
+        self._last_detection_log_ts = 0.0
         self._last_alert_ts = 0.0
 
         source: int | str
@@ -81,6 +83,7 @@ class TheftDetector:
                 "camera_source": self.config.camera_source,
                 "model_path": self.config.model_path,
                 "confidence": self.config.confidence,
+                "detection_log_interval_seconds": self.config.detection_log_interval_seconds,
                 "min_streak_frames": self.config.min_streak_frames,
                 "cooldown_seconds": self.config.cooldown_seconds,
                 "bridge_url": self.config.bridge_url,
@@ -153,6 +156,23 @@ class TheftDetector:
                     self._detection_streak = 0
 
                 now = time.time()
+                if (
+                    person_count > 0
+                    and (now - self._last_detection_log_ts) >= self.config.detection_log_interval_seconds
+                ):
+                    detection_event = {
+                        "id": str(int(now * 1000)),
+                        "type": "DETECTION",
+                        "message": f"Person detected (count={person_count})",
+                        "cameraId": self.config.camera_id,
+                        "confidence": round(max_conf, 4),
+                        "time": dt.datetime.utcnow().isoformat() + "Z",
+                        "snapshotUrl": "",
+                    }
+                    self._add_event(detection_event)
+                    self._post_event_async(detection_event)
+                    self._last_detection_log_ts = now
+
                 if (
                     self._detection_streak >= self.config.min_streak_frames
                     and (now - self._last_alert_ts) >= self.config.cooldown_seconds
@@ -239,6 +259,7 @@ def parse_args() -> DetectorConfig:
     parser.add_argument("--camera-id", default="pi-cam-1", help="Camera identifier")
     parser.add_argument("--model", default="yolov8n.pt", help="YOLO model path")
     parser.add_argument("--confidence", type=float, default=0.45, help="Detection confidence threshold")
+    parser.add_argument("--detection-log-interval-seconds", type=int, default=3, help="Seconds between DETECTION log events")
     parser.add_argument("--min-streak-frames", type=int, default=10, help="Frames with person before alert")
     parser.add_argument("--cooldown-seconds", type=int, default=20, help="Alert cooldown period")
     parser.add_argument("--bridge-url", default="http://localhost:8787/api/ai-theft/event", help="Alert bridge endpoint URL")
@@ -253,6 +274,7 @@ def parse_args() -> DetectorConfig:
         camera_id=args.camera_id,
         model_path=args.model,
         confidence=args.confidence,
+        detection_log_interval_seconds=args.detection_log_interval_seconds,
         min_streak_frames=args.min_streak_frames,
         cooldown_seconds=args.cooldown_seconds,
         bridge_url=args.bridge_url,
@@ -265,6 +287,13 @@ def parse_args() -> DetectorConfig:
 
 def create_app(detector: TheftDetector) -> Flask:
     app = Flask(__name__)
+
+    @app.after_request
+    def add_cors_headers(response):
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, x-alert-secret"
+        response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
+        return response
 
     @app.get('/health')
     def health():
