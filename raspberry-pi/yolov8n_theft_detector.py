@@ -9,6 +9,7 @@ Cyber Chaukidaar Raspberry Pi AI theft detector.
 from __future__ import annotations
 
 import argparse
+import base64
 import datetime as dt
 import json
 import signal
@@ -150,6 +151,8 @@ class TheftDetector:
                 if boxes is not None and getattr(boxes, "conf", None) is not None and len(boxes.conf) > 0:
                     max_conf = float(boxes.conf.max().item())
 
+                annotated = result.plot()
+
                 if person_count > 0:
                     self._detection_streak += 1
                 else:
@@ -168,6 +171,7 @@ class TheftDetector:
                         "confidence": round(max_conf, 4),
                         "time": dt.datetime.utcnow().isoformat() + "Z",
                         "snapshotUrl": "",
+                        "snapshotBase64": self._snapshot_base64(annotated),
                     }
                     self._add_event(detection_event)
                     self._post_event_async(detection_event)
@@ -185,13 +189,13 @@ class TheftDetector:
                         "confidence": round(max_conf, 4),
                         "time": dt.datetime.utcnow().isoformat() + "Z",
                         "snapshotUrl": "",
+                        "snapshotBase64": self._snapshot_base64(annotated),
                     }
                     self._add_event(event)
                     self._post_event_async(event)
                     self._last_alert_ts = now
                     self._detection_streak = 0
 
-                annotated = result.plot()
                 self._overlay_status(annotated, person_count)
                 self._update_jpeg(annotated)
             except Exception as exc:
@@ -223,6 +227,25 @@ class TheftDetector:
         with self._lock:
             self._frame_jpeg = buf.tobytes()
             self._last_frame_ts = time.time()
+
+    def _snapshot_base64(self, frame) -> str:
+        try:
+            h, w = frame.shape[:2]
+            if w > 960:
+                scale = 960 / float(w)
+                frame = cv2.resize(frame, (960, int(h * scale)), interpolation=cv2.INTER_AREA)
+
+            ok, buf = cv2.imencode(
+                ".jpg",
+                frame,
+                [int(cv2.IMWRITE_JPEG_QUALITY), 70],
+            )
+            if not ok:
+                return ""
+
+            return base64.b64encode(buf.tobytes()).decode("ascii")
+        except Exception:
+            return ""
 
     def _add_event(self, event: dict) -> None:
         with self._lock:

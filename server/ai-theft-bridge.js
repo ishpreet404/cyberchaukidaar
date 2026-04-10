@@ -62,6 +62,9 @@ async function readJsonBody(req) {
 }
 
 function normalizeEvent(payload = {}) {
+	const snapshotBase64 =
+		typeof payload.snapshotBase64 === "string" ? payload.snapshotBase64 : "";
+
 	return {
 		id: payload.id || String(Date.now()),
 		type: payload.type || "THEFT",
@@ -70,8 +73,14 @@ function normalizeEvent(payload = {}) {
 		confidence:
 			typeof payload.confidence === "number" ? payload.confidence : null,
 		snapshotUrl: payload.snapshotUrl || "",
+		snapshotBase64,
 		time: payload.time || new Date().toISOString(),
 	};
+}
+
+function stripTransientEventFields(event) {
+	const { snapshotBase64, ...sanitized } = event;
+	return sanitized;
 }
 
 function pushEvent(event) {
@@ -104,11 +113,12 @@ async function sendTelegramAlert(event) {
 		return { sent: false, reason: "telegram-not-configured" };
 	}
 
+	const detectedAt = event.time || new Date().toISOString();
 	const textLines = [
 		"🚨 *Cyber Chaukidaar AI Theft Alert*",
 		`Type: ${event.type}`,
 		`Camera: ${event.cameraId}`,
-		`Time: ${event.time}`,
+		`Detected At: ${detectedAt}`,
 		`Message: ${event.message}`,
 	];
 
@@ -120,17 +130,63 @@ async function sendTelegramAlert(event) {
 		textLines.push(`Snapshot: ${event.snapshotUrl}`);
 	}
 
-	const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-	const response = await fetch(url, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({
-			chat_id: TELEGRAM_CHAT_ID,
-			text: textLines.join("\n"),
-			parse_mode: "Markdown",
-			disable_web_page_preview: true,
-		}),
-	});
+	let response;
+	if (event.snapshotBase64) {
+		try {
+			const imageBuffer = Buffer.from(event.snapshotBase64, "base64");
+			const form = new FormData();
+			form.append("chat_id", TELEGRAM_CHAT_ID);
+			form.append("caption", textLines.join("\n"));
+			form.append("parse_mode", "Markdown");
+			form.append(
+				"photo",
+				new Blob([imageBuffer], { type: "image/jpeg" }),
+				`detection-${Date.now()}.jpg`,
+			);
+
+			response = await fetch(
+				`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
+				{
+					method: "POST",
+					body: form,
+				},
+			);
+
+			if (!response.ok) {
+				const photoError = await response.text();
+				response = await fetch(
+					`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+					{
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({
+							chat_id: TELEGRAM_CHAT_ID,
+							text: `${textLines.join("\n")}\n(Snapshot upload failed: ${photoError.slice(0, 120)})`,
+							parse_mode: "Markdown",
+							disable_web_page_preview: true,
+						}),
+					},
+				);
+			}
+		} catch (error) {
+			return {
+				sent: false,
+				reason: `snapshot-encode-failed: ${error.message}`,
+			};
+		}
+	} else {
+		const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+		response = await fetch(url, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				chat_id: TELEGRAM_CHAT_ID,
+				text: textLines.join("\n"),
+				parse_mode: "Markdown",
+				disable_web_page_preview: true,
+			}),
+		});
+	}
 
 	if (!response.ok) {
 		const details = await response.text();
@@ -337,8 +393,9 @@ const server = createServer(async (req, res) => {
 					: await readJsonBody(req);
 
 			const event = normalizeEvent(body);
-			pushEvent(event);
-			broadcastEvent(event);
+			const eventForStore = stripTransientEventFields(event);
+			pushEvent(eventForStore);
+			broadcastEvent(eventForStore);
 
 			const eventType = String(event.type || "").toUpperCase();
 			const shouldNotifyTelegram =
@@ -347,7 +404,7 @@ const server = createServer(async (req, res) => {
 				? await sendTelegramAlert(event)
 				: { sent: false, reason: "skipped-non-alert-type" };
 
-			json(res, 200, { ok: true, event, telegram });
+			json(res, 200, { ok: true, event: eventForStore, telegram });
 		} catch (error) {
 			json(res, 400, { ok: false, error: error.message });
 		}
